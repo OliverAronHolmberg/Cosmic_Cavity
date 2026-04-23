@@ -179,15 +179,22 @@ int main(){
 
     
     Player player;
-
-
     
-    for (int y = 0; y < 10; y++){
-        for (int x = 0; x < 10; x++){
+    float seed = 1234.5;
+    
+
+    for (int x = 0; x < 10; x++){
+            
+        float bigHills = sin((x+seed) * 0.1f) * 10.0f;
+        float smallHills = sin((x+seed) * 0.4f) * 2.0f;
+
+        int surfaceY = 0 + sin((x+seed) * 0.2f) * 3.0f;
+
+        for (int y = surfaceY; y < worldH; y++){
             Tile tile(x*tileSize, y*tileSize, tileSize, tileSize, "GRASS");
             worldTiles.push_back(tile);
-
         }
+
     }
 
 
@@ -196,12 +203,15 @@ int main(){
 
     while(!WindowShouldClose()){
 
+        
+        player.Update(worldTiles, tileSize);
         BeginDrawing();
+        ClearBackground(SKYBLUE);
 
         BeginMode2D(player.getCamera());
-        player.Update(worldTiles, tileSize);
+        
 
-        ClearBackground(WHITE);
+        
 
         for(int id = 0; id < worldTiles.size(); id++){
             worldTiles[id].DrawTile();
