@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <random>
+#include <ctime>
 
 class TextureHandler{
     public:
@@ -39,6 +40,10 @@ void DrawTextureFromTextures(Texture2D texture, Rectangle rec){
 }
 
 
+
+
+
+
 class TextureBlock{
     int x;
     int y;
@@ -47,6 +52,9 @@ class TextureBlock{
     Rectangle rec;
     std::string ID;
     public:
+    
+    Rectangle getRec() const {return rec;}
+    Vector2 getPos() const {return {x, y};}
     TextureBlock(int posX, int posY, int W, int H, std::string textureID){
         x = posX;
         y = posY;
@@ -70,6 +78,79 @@ class Tile : public TextureBlock{
 };
 
 
+class Player{
+    
+    Vector2 mousePos;
+    Camera2D camera;
+    float movementSpeed = 10.0f;
+    
+    public:
+    Player(){
+        camera = { 0 };
+        camera.target = {0, 0};
+        camera.offset = {1080/2.0f, 720/2.0f};
+        camera.rotation = 0.0f;
+        camera.zoom = 1.0f;
+    }
+
+    Vector2 GetMouseMouse(){
+        return GetScreenToWorld2D(GetMousePosition(), camera);
+    }
+
+
+    void Update(std::vector<Tile>& worldTiles, int tileSize){
+
+        //Camera
+        if(IsKeyDown(KEY_D)) camera.target.x += movementSpeed;
+        if(IsKeyDown(KEY_A)) camera.target.x -= movementSpeed;
+        if(IsKeyDown(KEY_W)) camera.target.y -= movementSpeed;
+        if(IsKeyDown(KEY_S)) camera.target.y += movementSpeed;
+
+
+        //Tile Placement
+        if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)){
+
+            mousePos = GetMouseMouse();
+            int snappedX = (int)(mousePos.x/tileSize) * tileSize;
+            int snappedY = (int)(mousePos.y/tileSize) * tileSize;
+            
+            bool isOcupied = false;
+
+            for (const auto& tile : worldTiles){
+                if(tile.getPos().x == snappedX && tile.getPos().y == snappedY){
+                    isOcupied = true;
+                    break;
+                }
+            }
+
+            if(!isOcupied){
+                worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, "GRASS"));
+            }
+
+            
+            
+        }
+        //Remove Tile
+        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
+            mousePos = GetMouseMouse();
+            for (int i = 0; i < worldTiles.size(); i++){
+                if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
+                    worldTiles.erase(worldTiles.begin()+i);
+                    break;
+                }
+            }
+                    
+        }
+
+
+    }
+    
+
+    Camera2D getCamera() {return camera;}
+
+};
+
+
 
 
 
@@ -78,22 +159,34 @@ int main(){
     
     int winW = 1080;
     int winH = 720;
+
+    
+
     
     int FPS = 60;
 
     InitWindow(winW, winH, "Terraria");
-    
+    SetTargetFPS(FPS);
     LoadTextures();
 
-    std::vector<Tile> WorldTiles = {};
+
+    std::vector<Tile> worldTiles = {};
+
+    int tileSize = 120;
+    int worldW = tileSize*100;
+    int worldH = tileSize*100;
+
+
     
+    Player player;
 
 
     
     for (int y = 0; y < 10; y++){
         for (int x = 0; x < 10; x++){
-            Tile tile(x*100, y*100, 100, 100, "GRASS");
-            WorldTiles.push_back(tile);
+            Tile tile(x*tileSize, y*tileSize, tileSize, tileSize, "GRASS");
+            worldTiles.push_back(tile);
+
         }
     }
 
@@ -105,10 +198,16 @@ int main(){
 
         BeginDrawing();
 
-        for(int id = 0; id < WorldTiles.size(); id++){
-            WorldTiles[id].DrawTile();
+        BeginMode2D(player.getCamera());
+        player.Update(worldTiles, tileSize);
+
+        ClearBackground(WHITE);
+
+        for(int id = 0; id < worldTiles.size(); id++){
+            worldTiles[id].DrawTile();
         }
         
+        EndMode2D();
 
         EndDrawing();
 
