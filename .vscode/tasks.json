@@ -1,0 +1,81 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build debug",
+            "type": "shell",
+            "command": "C:/raylib/w64devkit/bin/g++.exe",
+            "args": [
+                "-g",
+                "-O0",
+                "-std=c++14",
+                "-o",
+                "main.exe",
+                "src/main.cpp",
+                "-IC:/raylib/raylib/src",
+                "-LC:/raylib/raylib/src",
+                "-lraylib",
+                "-lwinmm",
+                "-lgdi32",
+                "-mwindows"
+            ],
+            "options": {
+                "env": {
+                    "PATH": "C:/raylib/w64devkit/bin;${env:PATH}"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "build release",
+            "type": "process",
+            "command": "make",
+            "args": [
+                "PLATFORM=PLATFORM_DESKTOP"
+            ],
+            "windows": {
+                "command": "C:/raylib/w64devkit/bin/mingw32-make.exe",
+                "args": [
+                    "RAYLIB_PATH=C:/raylib/raylib",
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=src/*.cpp"
+                ]
+            },
+            "osx": {
+                "args": [
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=src/*.cpp"
+                ]
+            },
+            "linux": {
+                "args": [
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "DESTDIR=/home/linuxbrew/.linuxbrew",
+                    "RAYLIB_LIBTYPE=SHARED",
+                    "EXAMPLE_RUNTIME_PATH=/home/linuxbrew/.linuxbrew/lib",
+                    "OBJS=src/*.cpp"
+                ]
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "detail": "compiler: C:\\raylib\\w64devkit\\bin\\g++.exe"
+        }
+    ]
+}
