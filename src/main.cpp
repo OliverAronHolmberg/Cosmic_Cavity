@@ -26,8 +26,8 @@ TextureHandler textures;
 void LoadTextures(){
     textures.Load("DEBUG", "resources/CatDebug.jpg");
     textures.Load("GRASS", "resources/Grass.png");
-    textures.Load("DIRT", "resources/CatDebug.jpg");
-    textures.Load("STONE", "resources/CatDebug.jpg");
+    textures.Load("DIRT", "resources/Dirt.png");
+    textures.Load("STONE", "resources/Stone.png");
     textures.Load("GOLD", "resources/CatDebug.jpg");
 }
 
@@ -77,20 +77,36 @@ class Tile : public TextureBlock{
 
 };
 
+class Inventory {
+
+    int x;
+    int y;
+    int w;
+    int h;
+
+
+    public:
+    Inventory(int X, int Y, int W, int H){
+
+    }
+
+
+};
+
 
 class Player{
     
     Vector2 mousePos;
     Camera2D camera;
-    float movementSpeed = 10.0f;
-    
+    float movementSpeed;
     public:
     Player(){
         camera = { 0 };
         camera.target = {0, 0};
         camera.offset = {1080/2.0f, 720/2.0f};
         camera.rotation = 0.0f;
-        camera.zoom = 1.0f;
+        camera.zoom = 0.1f;
+        movementSpeed = 10.0f/camera.zoom;
     }
 
     Vector2 GetMouseMouse(){
@@ -105,6 +121,11 @@ class Player{
         if(IsKeyDown(KEY_A)) camera.target.x -= movementSpeed;
         if(IsKeyDown(KEY_W)) camera.target.y -= movementSpeed;
         if(IsKeyDown(KEY_S)) camera.target.y += movementSpeed;
+
+        camera.zoom += GetMouseWheelMove() * 0.1f;
+        if(camera.zoom < 0.1f) camera.zoom = 0.1f;
+        if(camera.zoom > 3.0f) camera.zoom = 3.0f;
+        movementSpeed = 10.0f/camera.zoom;
 
 
         //Tile Placement
@@ -151,7 +172,46 @@ class Player{
 };
 
 
+float Noise1D(float x, float seed){
 
+    auto hash = [](int x) {
+        x = ((x >> 16) ^ x) * 0x45d9f3b;
+        x = ((x >> 16) ^ x) * 0x45d9f3b;
+        x = (x >> 16) ^ x;
+        return (float)x / 2147483647.0f;
+    };
+    int x0 = (int)floor(x);
+    int x1 = x0 + 1;
+    float t = x -(float)x0;
+    float fade = t * t * (3-2*t);
+    return hash(x0 + (int)seed) * (1.0f - fade) + hash(x1 + (int)seed) * fade;
+
+}
+
+float Noise2D(float x, float y, float seed){
+    auto hash = [](int x, int y, int s){
+        unsigned int h = (unsigned int)s  ^(unsigned int)x * 1327217883 ^(unsigned int)y * 374761393;
+        h = (h ^(h>>16)) * 0x85ebca6b;
+        h = (h ^(h>>13)) * 0x85ebca6b;
+        return (float)(h & 0x7FFFFFFF) / 2147483647.0f;
+    };
+    int ix = (int)floor(x);
+    int iy = (int)floor(y);
+    float fx = x -(float)ix;
+    float fy = y -(float)iy;
+
+    float ux = fx*fx*(3.0f-2.0f * fx);
+    float uy = fy*fy*(3.0f-2.0f * fy);
+
+    float a = hash(ix, iy, (int)seed);
+    float b = hash(ix + 1, iy, (int)seed);
+    float c = hash(ix, iy+1, (int)seed);
+    float d = hash(ix + 1, iy + 1, (int)seed);
+
+    float x1 = a + ux *(b - a);
+    float x2 = c + ux *(d - c);
+    return x1 + uy * (x2 - x1);
+}
 
 
 
@@ -173,29 +233,44 @@ int main(){
     std::vector<Tile> worldTiles = {};
 
     int tileSize = 120;
-    int worldW = tileSize*100;
-    int worldH = tileSize*100;
+    int worldW = 1500;
+    int worldH = 500;
 
-
+    
     
     Player player;
     
-    float seed = 1234.5;
+    float seed = GetRandomValue(1, 10000);
+    float caveSize = 0.1f;
     
+    worldTiles.reserve(worldW * worldH);
 
-    for (int x = 0; x < 10; x++){
-            
-        float bigHills = sin((x+seed) * 0.1f) * 10.0f;
-        float smallHills = sin((x+seed) * 0.4f) * 2.0f;
+    
+     for (int x = 0; x < worldW; x++){
 
-        int surfaceY = 0 + sin((x+seed) * 0.2f) * 3.0f;
+        float mountians = Noise1D(x * 0.05f, seed) * 30.0f;
+        float jagged = Noise1D(x * 0.2f, seed + 100) * 5.0f;
+
+        int surfaceY = 10 + (int)(mountians + jagged);
+
 
         for (int y = surfaceY; y < worldH; y++){
-            Tile tile(x*tileSize, y*tileSize, tileSize, tileSize, "GRASS");
-            worldTiles.push_back(tile);
+
+            float caveValue = Noise2D(x * caveSize, y * caveSize, seed + 500);
+
+            if(caveValue > 0.3f){
+                std::string tex = (y == surfaceY) ? "GRASS" : "STONE";
+                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, tex));
+            }
+
+            
+
         }
 
+
+
     }
+
 
 
 
@@ -210,15 +285,30 @@ int main(){
 
         BeginMode2D(player.getCamera());
         
+        Camera2D cam = player.getCamera();
 
-        
+        float viewLeft = cam.target.x - (cam.offset.x / cam.zoom);
+        float viewTop = cam.target.y - (cam.offset.y / cam.zoom);
+        float viewRight = viewLeft + (winW / cam.zoom);
+        float viewBottom = viewTop + (winH / cam.zoom);
+
+        int margin = tileSize*2;
 
         for(int id = 0; id < worldTiles.size(); id++){
-            worldTiles[id].DrawTile();
+            Rectangle tileRec = worldTiles[id].getRec();
+            if (tileRec.x + tileRec.width > viewLeft - margin &&
+                tileRec.x < viewRight + margin &&
+                tileRec.y + tileRec.height > viewTop - margin &&
+                tileRec.y < viewBottom + margin)
+                {
+                    worldTiles[id].DrawTile();
+                }
+
+            
         }
         
         EndMode2D();
-
+        DrawFPS(10, 10);
         EndDrawing();
 
     }   
