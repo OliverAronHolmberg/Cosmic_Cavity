@@ -38,6 +38,7 @@ void LoadTextures(){
     textures.Load("STONE", "resources/Stone.png");
     textures.Load("COBBLESTONE", "resources/CobbleStone.png");
     textures.Load("SNOW", "resources/Snow.png");
+    textures.Load("PLAYER", "resources/Player.png");
     
 }
 
@@ -284,20 +285,25 @@ class Player{
 
     Inventory inventory;
 
-    
-
     Texture2D invTex = textures.Get("INVENTORYSLOT");
 
-    
+    bool Isflying = false;
+    float accelerationY = 0.0f;
+    const float gravity = 0.5f;
+    bool isGrounded = false;
+    float jumpHeight = 20.0f;
 
     public:
+    Rectangle playerRec = {0, 0, 75, 175};
+
     Player(int winW, int winH) : inventory((winW-winW/2)/2, winH-slotSize-invMargin, winW/2, slotSize){
         camera = { 0 };
         camera.target = {0, 0};
         camera.offset = {1080/2.0f, 720/2.0f};
         camera.rotation = 0.0f;
-        camera.zoom = 0.1f;
+        camera.zoom = 1.0f;
         movementSpeed = 10.0f/camera.zoom;
+
     }
 
     Inventory& getInventory() {return inventory;}
@@ -312,11 +318,53 @@ class Player{
     
         
 
-        //Camera
-        if(IsKeyDown(KEY_D)) camera.target.x += movementSpeed;
-        if(IsKeyDown(KEY_A)) camera.target.x -= movementSpeed;
-        if(IsKeyDown(KEY_W)) camera.target.y -= movementSpeed;
-        if(IsKeyDown(KEY_S)) camera.target.y += movementSpeed;
+        //Camera & movement
+        float deltaX = 0;
+        
+        if(IsKeyDown(KEY_D)) deltaX += movementSpeed;
+        if(IsKeyDown(KEY_A)) deltaX -= movementSpeed;
+
+        playerRec.x += deltaX;
+
+        for (const auto& tile : worldTiles){
+            if(CheckCollisionRecs(playerRec, tile.getRec())){
+                if(deltaX > 0) playerRec.x = tile.getRec().x - playerRec.width;
+                if(deltaX < 0) playerRec.x = tile.getRec().x + tile.getRec().width;
+            }
+        }
+
+        if(!Isflying){
+            accelerationY += gravity;
+        }else{
+            if(IsKeyDown(KEY_W)) playerRec.y -= movementSpeed;
+            if(IsKeyDown(KEY_S)) playerRec.y += movementSpeed;
+        }
+
+        playerRec.y += accelerationY;
+
+       
+        isGrounded = false;
+        for (const auto& tile : worldTiles){
+            if(CheckCollisionRecs(playerRec, tile.getRec())){
+                if(accelerationY > 0){
+                    playerRec.y = tile.getRec().y - playerRec.height;
+                    accelerationY = 0;
+                    isGrounded = true;
+                }
+                else if(accelerationY < 0){
+                playerRec.y  = tile.getRec().y + tile.getRec().height;
+                accelerationY = 0;
+            }
+            }
+        }
+        if(IsKeyPressed(KEY_SPACE) && isGrounded && !Isflying){
+            accelerationY = -jumpHeight;
+            isGrounded = false;
+        }
+
+        camera.target = {playerRec.x + playerRec.width/2, playerRec.y + playerRec.height/2};
+
+        
 
         if(IsKeyPressed(KEY_TAB)){
             inventory.ToggleInventory();
@@ -333,10 +381,10 @@ class Player{
         if(IsKeyPressed(KEY_NINE)){inventory.setSelectedSlot(9);}
 
 
-        camera.zoom += GetMouseWheelMove() * 0.1f;
-        if(camera.zoom < 0.1f) camera.zoom = 0.1f;
-        if(camera.zoom > 3.0f) camera.zoom = 3.0f;
-        movementSpeed = 10.0f/camera.zoom;
+        // camera.zoom += GetMouseWheelMove() * 0.1f;
+        // if(camera.zoom < 0.1f) camera.zoom = 0.1f;
+        // if(camera.zoom > 3.0f) camera.zoom = 3.0f;
+        // movementSpeed = 10.0f/camera.zoom;
 
 
         mousePos = GetMouseMouse();
@@ -354,7 +402,12 @@ class Player{
                 }
             }
 
-            if(!isOcupied){
+            Rectangle placementRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
+
+            bool hitsPlayer = CheckCollisionRecs(playerRec, placementRec);
+
+            if(!isOcupied && !hitsPlayer){
+
                 if(inventory.getItemID() != "NONE"){
                     worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID(), inventory.getItemID()));
                     inventory.removeItemFromSelected(1);
@@ -388,16 +441,6 @@ class Player{
                     
         }
 
-        
-
-        
-
-        
-
-
-        
-
-        
 
 
     }
@@ -405,6 +448,23 @@ class Player{
     void DrawHighlight(int tileSize){
         Rectangle hightlightRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
         DrawRectangleLinesEx(hightlightRec, 3.0f, WHITE);
+    }
+
+    void DrawPlayerSprite(){
+        Texture2D sprite = textures.Get("PLAYER");
+
+        Rectangle sourceRec = {0.0f, 0.0f, (float)sprite.width, (float)sprite.height};
+        float drawW = playerRec.width+30;
+        float drawH = playerRec.height+25;
+
+        Rectangle destRec = {playerRec.x + (playerRec.width / 2) - (drawW / 2),
+                            playerRec.y + (playerRec.height / 2) - (drawH / 2),
+                            drawW,
+                            drawH
+        };
+
+        // DrawRectangleRec(playerRec, WHITE);
+        DrawTexturePro(sprite, sourceRec, destRec, {0, 0}, 0.0f, WHITE);
     }
     
 
@@ -527,7 +587,6 @@ int main(){
     LoadTextures();
     
     
-    
 
     std::vector<Tile> worldTiles = {};
 
@@ -578,7 +637,9 @@ int main(){
         }
         
         player.DrawHighlight(tileSize);
+        player.DrawPlayerSprite();
         EndMode2D();
+        
         player.getInventory().DrawInventory();
         DrawFPS(10, 10);
         EndDrawing();
