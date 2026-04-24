@@ -6,6 +6,9 @@
 #include <ctime>
 #include <cctype>
 
+int winW = 1080;
+int winH = 720;
+
 class TextureHandler{
     public:
     std::map<std::string, Texture2D> textures = {};
@@ -40,6 +43,8 @@ void LoadTextures(){
     textures.Load("SNOW", "resources/Snow.png");
     textures.Load("PLAYER", "resources/Player.png");
     textures.Load("AMBERORE", "resources/AmberOre.png");
+    textures.Load("LOG", "resources/Log.png");
+    textures.Load("LEAVES", "resources/Leaves.png");
     
 }
 
@@ -114,6 +119,61 @@ struct Item{
     int count = 0;
     std::string textureID = "NONE";
 };
+
+
+struct TileOffset{
+    int dx;
+    int dy;
+    std::string name;
+};
+
+struct Structure{
+    std::vector<TileOffset> tiles;
+};
+
+Structure CreateTree(){
+    Structure tree;
+    tree.tiles.push_back({0, 0, "LOG"});
+    tree.tiles.push_back({0, -1, "LOG"});
+    tree.tiles.push_back({0, -2, "LOG"});
+    tree.tiles.push_back({0, -3, "LOG"});
+
+    tree.tiles.push_back({0, -4, "LEAVES"});
+    tree.tiles.push_back({-1, -4, "LEAVES"});
+    tree.tiles.push_back({-2, -4, "LEAVES"});
+    tree.tiles.push_back({1, -4, "LEAVES"});
+    tree.tiles.push_back({2, -4, "LEAVES"});
+    
+    tree.tiles.push_back({0, -5, "LEAVES"});
+    tree.tiles.push_back({-1, -5, "LEAVES"});
+    tree.tiles.push_back({-2, -5, "LEAVES"});
+    tree.tiles.push_back({1, -5, "LEAVES"});
+    tree.tiles.push_back({2, -5, "LEAVES"});
+
+    tree.tiles.push_back({0, -6, "LEAVES"});
+    tree.tiles.push_back({-1, -6, "LEAVES"});
+    tree.tiles.push_back({1, -6, "LEAVES"});
+
+
+    
+
+    return tree;
+    
+}
+
+Structure CreateBush(){
+    Structure bush;
+
+    bush.tiles.push_back({0, 0, "LEAVES"});
+    bush.tiles.push_back({1, 0, "LEAVES"});
+    bush.tiles.push_back({-1, 0, "LEAVES"});
+    bush.tiles.push_back({0, 1, "LEAVES"});
+    bush.tiles.push_back({1, 1, "LEAVES"});
+    
+
+
+    
+}
 
 class InventorySlot : public itemUI{
     Item heldItem;
@@ -222,6 +282,7 @@ class Inventory{
 
     void DrawInventory(){
         if(isOpened){
+            DrawRectangle(0,0, winW, winH, ColorAlpha(DARKGRAY, 0.75f));
             for (auto& slot : slots){
                 slot.DrawSlot();
             }
@@ -467,7 +528,7 @@ class Player{
         float drawH = playerRec.height+25;
 
         Rectangle destRec = {playerRec.x + (playerRec.width / 2) - (drawW / 2),
-                            playerRec.y + (playerRec.height / 2) - (drawH / 2),
+                            (playerRec.y + playerRec.height) -drawH,
                             drawW,
                             drawH
         };
@@ -558,17 +619,35 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                 }
                 else if (y == surfaceY){
                     name = "Grass";
+                    float spawnNoise = Noise1D(x*0.5f, seed + 1234);
+
+                    if(spawnNoise > 0.9f && name == "Grass"){
+                        Structure tree = CreateTree();
+                        for(auto& offset : tree.tiles){
+                            int tx = x + offset.dx;
+                            int ty = surfaceY + offset.dy;
+
+                            std::string texID = offset.name;
+                            for (auto & c : texID) c = toupper(c);
+                            worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, name));
+                        }
+                    }
+                    
+
                 }else if (y < surfaceY + 6){
                     name = "Dirt";
                 }
                 else{
-                    int value = GetRandomValue(0, 100);
-                    if (value < 1 && y <=300){
+                    float oreNoise = Noise2D(x * 0.4f, y*0.4f, seed + 999);
+                    if (oreNoise < 0.1f && y > 100){
                         name = "AmberOre";
-                    }else if(1 < value && value < 20){
-                        name = "CobbleStone";
                     }else{
-                        name = "Stone";
+                        float stoneNoise = Noise2D(x*0.5f, y*0.5f, seed + 777);
+                        if(stoneNoise > 0.8f){
+                            name = "CobbleStone";
+                        }else{
+                            name = "Stone";
+                        }
                     }
                 }
                 
@@ -625,8 +704,7 @@ class Door : public WorldObject{
 
 int main(){
     
-    int winW = 1080;
-    int winH = 720;
+    
 
 
     
