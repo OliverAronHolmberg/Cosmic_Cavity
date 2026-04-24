@@ -16,25 +16,31 @@ class TextureHandler{
     }
 
     Texture2D Get(std::string ID){
-        Texture2D tex = textures.at(ID);
-        return tex;
+        auto it = textures.find(ID);
+
+        if (it == textures.end()){
+            return textures.at("DEBUG");
+        }
+        
+        return it->second;
     }
 };
 
 TextureHandler textures;
 
 void LoadTextures(){
+    textures.Load("INVENTORYSLOT", "resources/InventoryTile.png");
     textures.Load("DEBUG", "resources/CatDebug.jpg");
     textures.Load("GRASS", "resources/Grass.png");
     textures.Load("DIRT", "resources/Dirt.png");
     textures.Load("STONE", "resources/Stone.png");
     textures.Load("GOLD", "resources/CatDebug.jpg");
+    
 }
 
 void DrawTextureFromTextures(Texture2D texture, Rectangle rec){
     
     Rectangle sourceRec = {0.0f, 0.0f, (float)texture.width, (float)texture.height};
-
 
     DrawTexturePro(texture, sourceRec, rec, {0,0}, 0.0f, WHITE);
 }
@@ -77,30 +83,173 @@ class Tile : public TextureBlock{
 
 };
 
-class Inventory {
+class itemUI : public TextureBlock{
 
     int x;
     int y;
     int w;
     int h;
-
+    
 
     public:
-    Inventory(int X, int Y, int W, int H){
-
+    itemUI(int X, int Y, int W, int H, std::string ID) : TextureBlock(X, Y, W, H, ID){
+        x = X;
+        y = Y;
+        w = W;
+        h = H;
     }
+
 
 
 };
 
+struct Item{
+    std::string name = "Empty";
+    int count = 0;
+    std::string textureID = "NONE";
+};
+
+class InventorySlot : public itemUI{
+    Item heldItem;
+    bool isOccupied = false;
+    int x;
+    int y;
+    int w;
+    int h;
+
+    public:
+    InventorySlot(int X, int Y, int W, int H) : itemUI(X, Y, W, H, "INVENTORYSLOT"){
+        x = X;
+        y = Y;
+        w = W;
+        h = H;
+    }
+    
+    void SetItem(Item newItem){
+        heldItem = newItem;
+        isOccupied = true;
+    }
+
+    bool getOccupied() {return isOccupied;}
+    std::string getItemName() {return heldItem.name;}
+
+    void incementItemCount(int amount){
+        heldItem.count += amount;
+    }
+
+    void DrawSlot(){
+        this->DrawTile();
+
+        if(isOccupied && heldItem.textureID != "NONE"){
+            Rectangle itemRec = { (float)x + 5, (float)y + 5, (float)w - 10, (float)h - 10};
+            DrawTextureFromTextures(textures.Get(heldItem.textureID), itemRec);
+            DrawText(TextFormat("%i", heldItem.count), x + 5, y + 5, 20, WHITE);
+        }
+
+    }
+    
+};
+
+class Inventory{
+    std::vector<InventorySlot> slots;
+    int rows = 5;
+    int cols = 10;
+    int x;
+    int y;
+    int w;
+    int h;
+    bool isOpened = false;
+
+    public:
+    void ToggleInventory() {isOpened = !isOpened;}
+
+    Inventory(int X, int Y, int W, int H){
+        x = X;
+        y = Y;
+        h = H;
+        w = W;
+
+        int slotSize = 50;
+        int padding = 0;
+
+        int totalGridWidth = (cols * slotSize) + ((cols -1) * padding);
+        int centeredOffset = (W - totalGridWidth) / 2;
+
+        for (int r = 0; r < rows; r++){
+            for (int c = 0; c < cols; c++){
+                int slotX = X + centeredOffset + (c* (slotSize + padding));
+                int slotY = Y - (r * (slotSize + padding));
+                slots.push_back(InventorySlot(slotX, slotY, slotSize, slotSize));
+            }
+        }
+
+
+    }
+
+
+    void DrawInventory(){
+        if(isOpened){
+            for (auto& slot : slots){
+                slot.DrawSlot();
+            }
+
+        }else{
+            for (int i = 0; i < cols; i++){
+                slots[i].DrawSlot();
+            }
+        }
+    }
+
+
+    bool AddItem(Item newItem){
+
+
+        // Add Existing Item
+        for(auto& slot : slots){
+            if (slot.getOccupied() && slot.getItemName() == newItem.name){
+                slot.incementItemCount(newItem.count);
+                return true;
+            }
+        }
+
+        // Find Empty slot
+        for (auto& slot : slots){
+            if (!slot.getOccupied()){
+                slot.SetItem(newItem);
+                return true;
+            }
+        }
+
+        return false;
+
+    }
+
+};
+
+
+
+
 
 class Player{
-    
+    int slotSize = 50;
+    int invMargin = 10;
     Vector2 mousePos;
     Camera2D camera;
     float movementSpeed;
+
+    int snappedX;
+    int snappedY;
+
+    Inventory inventory;
+
+    
+
+    Texture2D invTex = textures.Get("INVENTORYSLOT");
+
+    
+
     public:
-    Player(){
+    Player(int winW, int winH) : inventory((winW-winW/2)/2, winH-slotSize-invMargin, winW/2, slotSize){
         camera = { 0 };
         camera.target = {0, 0};
         camera.offset = {1080/2.0f, 720/2.0f};
@@ -109,12 +258,17 @@ class Player{
         movementSpeed = 10.0f/camera.zoom;
     }
 
+    Inventory& getInventory() {return inventory;}
+
     Vector2 GetMouseMouse(){
         return GetScreenToWorld2D(GetMousePosition(), camera);
     }
 
+    
 
     void Update(std::vector<Tile>& worldTiles, int tileSize){
+    
+        
 
         //Camera
         if(IsKeyDown(KEY_D)) camera.target.x += movementSpeed;
@@ -122,19 +276,23 @@ class Player{
         if(IsKeyDown(KEY_W)) camera.target.y -= movementSpeed;
         if(IsKeyDown(KEY_S)) camera.target.y += movementSpeed;
 
+        if(IsKeyPressed(KEY_TAB)){
+            inventory.ToggleInventory();
+        }
+
+
         camera.zoom += GetMouseWheelMove() * 0.1f;
         if(camera.zoom < 0.1f) camera.zoom = 0.1f;
         if(camera.zoom > 3.0f) camera.zoom = 3.0f;
         movementSpeed = 10.0f/camera.zoom;
 
 
+        mousePos = GetMouseMouse();
+        snappedX = (int)(std::floor(mousePos.x/tileSize)) * tileSize;
+        snappedY = (int)(std::floor(mousePos.y/tileSize)) * tileSize;
+
         //Tile Placement
         if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)){
-
-            mousePos = GetMouseMouse();
-            int snappedX = (int)(mousePos.x/tileSize) * tileSize;
-            int snappedY = (int)(mousePos.y/tileSize) * tileSize;
-            
             bool isOcupied = false;
 
             for (const auto& tile : worldTiles){
@@ -151,19 +309,39 @@ class Player{
             
             
         }
+
         //Remove Tile
         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-            mousePos = GetMouseMouse();
+
+
             for (int i = 0; i < worldTiles.size(); i++){
                 if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
                     worldTiles.erase(worldTiles.begin()+i);
                     break;
                 }
             }
+
+            
                     
         }
 
+        
 
+        
+
+        
+
+
+        
+
+        
+
+
+    }
+
+    void DrawHighlight(int tileSize){
+        Rectangle hightlightRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
+        DrawRectangleLinesEx(hightlightRec, 3.0f, WHITE);
     }
     
 
@@ -214,32 +392,7 @@ float Noise2D(float x, float y, float seed){
 }
 
 
-
-int main(){
-    
-    int winW = 1080;
-    int winH = 720;
-
-    
-
-    
-    int FPS = 60;
-
-    InitWindow(winW, winH, "Terraria");
-    SetTargetFPS(FPS);
-    LoadTextures();
-
-
-    std::vector<Tile> worldTiles = {};
-
-    int tileSize = 120;
-    int worldW = 1500;
-    int worldH = 500;
-
-    
-    
-    Player player;
-    
+void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worldTiles){
     float seed = GetRandomValue(1, 10000);
     float caveSize = 0.1f;
     
@@ -254,11 +407,14 @@ int main(){
         int surfaceY = 10 + (int)(mountians + jagged);
 
 
+
         for (int y = surfaceY; y < worldH; y++){
 
-            float caveValue = Noise2D(x * caveSize, y * caveSize, seed + 500);
+            float caveShape = Noise2D(x * caveSize, y * caveSize, seed + 500);
 
-            if(caveValue > 0.3f){
+            float caveWidth = Noise2D(x * 0.02f, y* 0.02f, seed + 123);
+
+            if(fabs(caveShape - 0.5f) > (0.05f + caveWidth * 0.1f)){
                 std::string tex = (y == surfaceY) ? "GRASS" : "STONE";
                 worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, tex));
             }
@@ -266,15 +422,52 @@ int main(){
             
 
         }
-
-
-
     }
+}
 
 
 
+int main(){
+    
+    int winW = 1080;
+    int winH = 720;
 
 
+    
+    int FPS = 60;
+
+    InitWindow(winW, winH, "Terraria");
+    SetTargetFPS(FPS);
+    LoadTextures();
+    
+    
+    
+    
+
+    
+
+
+    
+
+
+    
+
+    std::vector<Tile> worldTiles = {};
+
+    int tileSize = 120;
+    int worldW = 1500;
+    int worldH = 500;
+
+    GenerateWorld(tileSize, worldW, worldH, worldTiles);
+
+    
+    
+    Player player(winW, winH);
+
+    Item Stone = {"Stone", 64, "STONE"};
+    player.getInventory().AddItem(Stone);
+    
+    
 
     while(!WindowShouldClose()){
 
@@ -303,11 +496,13 @@ int main(){
                 {
                     worldTiles[id].DrawTile();
                 }
-
+            
             
         }
         
+        player.DrawHighlight(tileSize);
         EndMode2D();
+        player.getInventory().DrawInventory();
         DrawFPS(10, 10);
         EndDrawing();
 
