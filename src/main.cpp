@@ -357,7 +357,7 @@ class Player{
     float jumpHeight = 20.0f;
 
     public:
-    Rectangle playerRec = {0, 0, 75, 175};
+    Rectangle playerRec = {100, 100, 75, 175};
 
     Player(int winW, int winH) : inventory((winW-winW/2)/2, winH-slotSize-invMargin, winW/2, slotSize){
         camera = { 0 };
@@ -425,7 +425,7 @@ class Player{
             }
             }
         }
-        if(IsKeyPressed(KEY_SPACE) && isGrounded && !Isflying){
+        if(IsKeyDown(KEY_W) && isGrounded && !Isflying){
             accelerationY = -jumpHeight;
             isGrounded = false;
         }
@@ -584,12 +584,20 @@ float Noise2D(float x, float y, float seed){
     return x1 + uy * (x2 - x1);
 }
 
+bool isTileAt(int tx, int ty, const std::vector<Tile>& worldTiles, int tileSize){
+        for(const auto& tile : worldTiles){
+            if(tile.getPos().x == tx * tileSize && tile.getPos().y == ty*tileSize){
+                return true;
+            }
+        }
+        return false;
+    }
 
 void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worldTiles){
     float seed = GetRandomValue(1, 10000);
     float caveSize = 0.05f;
     
-    worldTiles.reserve(worldW * worldH);
+    
 
     
      for (int x = 0; x < worldW; x++){
@@ -627,9 +635,13 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                             int tx = x + offset.dx;
                             int ty = surfaceY + offset.dy;
 
-                            std::string texID = offset.name;
-                            for (auto & c : texID) c = toupper(c);
-                            worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, name));
+                            if(!isTileAt(tx, ty, worldTiles, tileSize)){
+                                std::string texID = offset.name;
+                                for (auto & c : texID) c = toupper(c);
+                                worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, name));
+                            }
+
+                            
                         }
                     }
                     
