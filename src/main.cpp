@@ -4,6 +4,7 @@
 #include <map>
 #include <random>
 #include <ctime>
+#include <cctype>
 
 class TextureHandler{
     public:
@@ -35,7 +36,8 @@ void LoadTextures(){
     textures.Load("GRASS", "resources/Grass.png");
     textures.Load("DIRT", "resources/Dirt.png");
     textures.Load("STONE", "resources/Stone.png");
-    textures.Load("GOLD", "resources/CatDebug.jpg");
+    textures.Load("COBBLESTONE", "resources/CobbleStone.png");
+    textures.Load("SNOW", "resources/Snow.png");
     
 }
 
@@ -57,8 +59,9 @@ class TextureBlock{
     int w;
     int h;
     Rectangle rec;
-    std::string ID;
+    
     public:
+    std::string ID;
     
     Rectangle getRec() const {return rec;}
     Vector2 getPos() const {return {x, y};}
@@ -79,7 +82,7 @@ class TextureBlock{
 
 class Tile : public TextureBlock{
     public:
-    Tile(int posX, int posY, int W, int H, std::string textureID) : TextureBlock(posX, posY, W, H, textureID){}
+    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name) : TextureBlock(posX, posY, W, H, textureID){}
 
 
 };
@@ -133,20 +136,36 @@ class InventorySlot : public itemUI{
 
     bool getOccupied() {return isOccupied;}
     std::string getItemName() {return heldItem.name;}
-    std::string getItemID() {return heldItem.textureID;}
+    std::string getItemID() {
+        if(!isOccupied || heldItem.count <= 0) return "NONE";
+        return heldItem.textureID;
+    }
 
     void incementItemCount(int amount){
         heldItem.count += amount;
+        if(heldItem.count <= 0){
+            
+            isOccupied = false;
+            heldItem.count = 0;
+            heldItem.textureID = "NONE";
+            heldItem.name = "Empty";
+        }else{
+            isOccupied = true;
+        }
     }
 
     void DrawSlot(){
         this->DrawTile();
 
+       
         if(isOccupied && heldItem.textureID != "NONE"){
             Rectangle itemRec = { (float)x + 5, (float)y + 5, (float)w - 10, (float)h - 10};
             DrawTextureFromTextures(textures.Get(heldItem.textureID), itemRec);
             DrawText(TextFormat("%i", heldItem.count), x + 5, y + 5, 20, WHITE);
         }
+        
+
+        
 
     }
     
@@ -169,6 +188,10 @@ class Inventory{
     std::string getItemID() {
         return slots[selectedSlot].getItemID();
     }
+    std::string getSelectedItemName(){
+        return slots[selectedSlot].getItemName();
+    }
+    
 
     Inventory(int X, int Y, int W, int H){
         x = X;
@@ -208,7 +231,9 @@ class Inventory{
         }
     }
 
-
+    void removeItemFromSelected(int amount){
+        slots[selectedSlot].incementItemCount(-amount);
+    }
     bool AddItem(Item newItem){
 
 
@@ -248,7 +273,7 @@ class Inventory{
 
 
 class Player{
-    int slotSize = 50;
+    int slotSize = 75;
     int invMargin = 10;
     Vector2 mousePos;
     Camera2D camera;
@@ -331,7 +356,8 @@ class Player{
 
             if(!isOcupied){
                 if(inventory.getItemID() != "NONE"){
-                    worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID()));
+                    worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID(), inventory.getItemID()));
+                    inventory.removeItemFromSelected(1);
                 }
                 
             }
@@ -346,6 +372,13 @@ class Player{
 
             for (int i = 0; i < worldTiles.size(); i++){
                 if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
+
+                    std::string dropID = worldTiles[i].ID;
+                    
+
+                    Item droppedItem = {dropID, 1, dropID};
+                    inventory.AddItem(droppedItem);
+
                     worldTiles.erase(worldTiles.begin()+i);
                     break;
                 }
@@ -424,7 +457,7 @@ float Noise2D(float x, float y, float seed){
 
 void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worldTiles){
     float seed = GetRandomValue(1, 10000);
-    float caveSize = 0.1f;
+    float caveSize = 0.075f;
     
     worldTiles.reserve(worldW * worldH);
 
@@ -439,14 +472,32 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
 
 
         for (int y = surfaceY; y < worldH; y++){
-
+            
             float caveShape = Noise2D(x * caveSize, y * caveSize, seed + 500);
 
             float caveWidth = Noise2D(x * 0.02f, y* 0.02f, seed + 123);
 
             if(fabs(caveShape - 0.5f) > (0.05f + caveWidth * 0.1f)){
-                std::string tex = (y == surfaceY) ? "GRASS" : "STONE";
-                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, tex));
+                std::string name;
+                if(surfaceY < 5) {
+                    name = "Snow";
+                }
+                else if (y == surfaceY){
+                    name = "Grass";
+                }else if (y < surfaceY + 6){
+                    name = "Dirt";
+                }
+                else{
+                    if (GetRandomValue(0, 100) < 15){
+                        name = "CobbleStone";
+                    }else{
+                        name = "Stone";
+                    }
+                }
+                
+                std::string texID = name;
+                for (auto & c : texID) c = toupper(c);
+                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, texID, name));
             }
 
             
@@ -472,15 +523,6 @@ int main(){
     
     
     
-    
-
-    
-
-
-    
-
-
-    
 
     std::vector<Tile> worldTiles = {};
 
@@ -494,13 +536,9 @@ int main(){
     
     Player player(winW, winH);
 
-    Item Stone = {"Stone", 64, "STONE"};
-    Item Grass = {"Grass", 64, "GRASS"};
-    player.getInventory().AddItem(Stone);
-    player.getInventory().AddItem(Stone);
-    player.getInventory().AddItem(Grass);
-    
-    
+
+    Item droppedItem = {"DEBUG", 999, "DEBUG"};
+    player.getInventory().AddItem(droppedItem);
 
     while(!WindowShouldClose()){
 
@@ -520,6 +558,7 @@ int main(){
 
         int margin = tileSize*2;
 
+        
         for(int id = 0; id < worldTiles.size(); id++){
             Rectangle tileRec = worldTiles[id].getRec();
             if (tileRec.x + tileRec.width > viewLeft - margin &&
