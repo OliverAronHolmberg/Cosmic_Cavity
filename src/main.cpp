@@ -39,6 +39,7 @@ void LoadTextures(){
     textures.Load("COBBLESTONE", "resources/CobbleStone.png");
     textures.Load("SNOW", "resources/Snow.png");
     textures.Load("PLAYER", "resources/Player.png");
+    textures.Load("AMBERORE", "resources/AmberOre.png");
     
 }
 
@@ -180,10 +181,11 @@ class Inventory{
     int y;
     int w;
     int h;
-    bool isOpened = false;
     int selectedSlot = 0;
 
     public:
+    bool isOpened = false;
+    int GetInventoryToggle() {return isOpened;}
     void ToggleInventory() {isOpened = !isOpened;}
     void setSelectedSlot(int slotNumber){selectedSlot = slotNumber - 1;}
     std::string getItemID() {
@@ -320,9 +322,11 @@ class Player{
 
         //Camera & movement
         float deltaX = 0;
+        if(!inventory.isOpened){
+            if(IsKeyDown(KEY_D)) deltaX += movementSpeed;
+            if(IsKeyDown(KEY_A)) deltaX -= movementSpeed;
+        }
         
-        if(IsKeyDown(KEY_D)) deltaX += movementSpeed;
-        if(IsKeyDown(KEY_A)) deltaX -= movementSpeed;
 
         playerRec.x += deltaX;
 
@@ -336,8 +340,11 @@ class Player{
         if(!Isflying){
             accelerationY += gravity;
         }else{
-            if(IsKeyDown(KEY_W)) playerRec.y -= movementSpeed;
-            if(IsKeyDown(KEY_S)) playerRec.y += movementSpeed;
+            if(!inventory.isOpened){
+                if(IsKeyDown(KEY_W)) playerRec.y -= movementSpeed;
+                if(IsKeyDown(KEY_S)) playerRec.y += movementSpeed;
+
+            }
         }
 
         playerRec.y += accelerationY;
@@ -386,59 +393,61 @@ class Player{
         // if(camera.zoom > 3.0f) camera.zoom = 3.0f;
         // movementSpeed = 10.0f/camera.zoom;
 
-
-        mousePos = GetMouseMouse();
-        snappedX = (int)(std::floor(mousePos.x/tileSize)) * tileSize;
-        snappedY = (int)(std::floor(mousePos.y/tileSize)) * tileSize;
-
-        //Tile Placement
-        if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)){
-            bool isOcupied = false;
-
-            for (const auto& tile : worldTiles){
-                if(tile.getPos().x == snappedX && tile.getPos().y == snappedY){
-                    isOcupied = true;
-                    break;
+        if(inventory.isOpened == false){
+            mousePos = GetMouseMouse();
+            snappedX = (int)(std::floor(mousePos.x/tileSize)) * tileSize;
+            snappedY = (int)(std::floor(mousePos.y/tileSize)) * tileSize;
+    
+            //Tile Placement
+            if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)){
+                bool isOcupied = false;
+    
+                for (const auto& tile : worldTiles){
+                    if(tile.getPos().x == snappedX && tile.getPos().y == snappedY){
+                        isOcupied = true;
+                        break;
+                    }
                 }
-            }
-
-            Rectangle placementRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
-
-            bool hitsPlayer = CheckCollisionRecs(playerRec, placementRec);
-
-            if(!isOcupied && !hitsPlayer){
-
-                if(inventory.getItemID() != "NONE"){
-                    worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID(), inventory.getItemID()));
-                    inventory.removeItemFromSelected(1);
+    
+                Rectangle placementRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
+    
+                bool hitsPlayer = CheckCollisionRecs(playerRec, placementRec);
+    
+                if(!isOcupied && !hitsPlayer){
+    
+                    if(inventory.getItemID() != "NONE"){
+                        worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID(), inventory.getItemID()));
+                        inventory.removeItemFromSelected(1);
+                    }
+                    
                 }
+    
+                
                 
             }
-
-            
-            
-        }
-
-        //Remove Tile
-        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-
-
-            for (int i = 0; i < worldTiles.size(); i++){
-                if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
-
-                    std::string dropID = worldTiles[i].ID;
-                    
-
-                    Item droppedItem = {dropID, 1, dropID};
-                    inventory.AddItem(droppedItem);
-
-                    worldTiles.erase(worldTiles.begin()+i);
-                    break;
+    
+            //Remove Tile
+            if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
+    
+    
+                for (int i = 0; i < worldTiles.size(); i++){
+                    if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
+    
+                        std::string dropID = worldTiles[i].ID;
+                        
+    
+                        Item droppedItem = {dropID, 1, dropID};
+                        inventory.AddItem(droppedItem);
+    
+                        worldTiles.erase(worldTiles.begin()+i);
+                        break;
+                    }
                 }
+    
+                
+                        
             }
 
-            
-                    
         }
 
 
@@ -553,7 +562,10 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                     name = "Dirt";
                 }
                 else{
-                    if (GetRandomValue(0, 100) < 15){
+                    int value = GetRandomValue(0, 100);
+                    if (value < 1 && y <=300){
+                        name = "AmberOre";
+                    }else if(1 < value && value < 20){
                         name = "CobbleStone";
                     }else{
                         name = "Stone";
@@ -571,6 +583,44 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
     }
 }
 
+class WorldObject {
+    public:
+        Rectangle rec;
+        std::string ID;
+        bool hasCollision;
+        bool isInteractable;
+
+        float drawWidth;
+        float drawHeight;
+
+        WorldObject(float x, float y, float w, float h, std::string id, bool col){
+            rec = {x, y, w, h};
+            drawWidth = w;
+            drawHeight = h;
+            ID = id;
+            hasCollision = col;
+        }
+
+    virtual void Update()
+    {
+        
+    } 
+    virtual void Draw(){
+        DrawTextureFromTextures(textures.Get(ID), rec);
+
+    }
+};
+
+class Door : public WorldObject{
+    public:
+    bool isOpened = false;
+    void Interact(){
+        isOpened = !isOpened;
+        hasCollision = isOpened;
+        ID = isOpened ? "DOOR_OPEN" : "DOOR_CLOSED";
+    }
+};
+
 
 
 int main(){
@@ -582,7 +632,7 @@ int main(){
     
     int FPS = 60;
 
-    InitWindow(winW, winH, "Terraria");
+    InitWindow(winW, winH, "Cavity Cascade");
     SetTargetFPS(FPS);
     LoadTextures();
     
