@@ -457,7 +457,7 @@ float Noise2D(float x, float y, float seed){
 
 void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worldTiles){
     float seed = GetRandomValue(1, 10000);
-    float caveSize = 0.075f;
+    float caveSize = 0.05f;
     
     worldTiles.reserve(worldW * worldH);
 
@@ -472,12 +472,17 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
 
 
         for (int y = surfaceY; y < worldH; y++){
+
+
+            float depth = (float)(y-surfaceY) / (float)(worldH-surfaceY);
             
             float caveShape = Noise2D(x * caveSize, y * caveSize, seed + 500);
 
-            float caveWidth = Noise2D(x * 0.02f, y* 0.02f, seed + 123);
+            float caveThreashold = 0.02f + (depth * 0.12f);
 
-            if(fabs(caveShape - 0.5f) > (0.05f + caveWidth * 0.1f)){
+            bool isCave = fabs(caveShape - 0.25f) < caveThreashold;
+
+            if(!isCave){
                 std::string name;
                 if(surfaceY < 5) {
                     name = "Snow";
