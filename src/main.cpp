@@ -16,6 +16,7 @@ class TextureHandler{
     }
 
     Texture2D Get(std::string ID){
+        if (ID == "NONE") return { 0 };
         auto it = textures.find(ID);
 
         if (it == textures.end()){
@@ -132,6 +133,7 @@ class InventorySlot : public itemUI{
 
     bool getOccupied() {return isOccupied;}
     std::string getItemName() {return heldItem.name;}
+    std::string getItemID() {return heldItem.textureID;}
 
     void incementItemCount(int amount){
         heldItem.count += amount;
@@ -153,15 +155,20 @@ class InventorySlot : public itemUI{
 class Inventory{
     std::vector<InventorySlot> slots;
     int rows = 5;
-    int cols = 10;
+    int cols = 9;
     int x;
     int y;
     int w;
     int h;
     bool isOpened = false;
+    int selectedSlot = 0;
 
     public:
     void ToggleInventory() {isOpened = !isOpened;}
+    void setSelectedSlot(int slotNumber){selectedSlot = slotNumber - 1;}
+    std::string getItemID() {
+        return slots[selectedSlot].getItemID();
+    }
 
     Inventory(int X, int Y, int W, int H){
         x = X;
@@ -169,7 +176,7 @@ class Inventory{
         h = H;
         w = W;
 
-        int slotSize = 50;
+        int slotSize = 75;
         int padding = 0;
 
         int totalGridWidth = (cols * slotSize) + ((cols -1) * padding);
@@ -196,6 +203,7 @@ class Inventory{
         }else{
             for (int i = 0; i < cols; i++){
                 slots[i].DrawSlot();
+                highlightSelectedSlot();
             }
         }
     }
@@ -222,6 +230,15 @@ class Inventory{
 
         return false;
 
+    }
+
+    void highlightSelectedSlot(){
+        for (int i = 0; i < cols; i++){
+                if(i == selectedSlot){
+                   Rectangle highlightSlotRec = slots[i].getRec();
+                   DrawRectangleLinesEx(highlightSlotRec, 5.0f, WHITE);
+                }
+            }
     }
 
 };
@@ -280,6 +297,16 @@ class Player{
             inventory.ToggleInventory();
         }
 
+        if(IsKeyPressed(KEY_ONE)){inventory.setSelectedSlot(1);}
+        if(IsKeyPressed(KEY_TWO)){inventory.setSelectedSlot(2);}
+        if(IsKeyPressed(KEY_THREE)){inventory.setSelectedSlot(3);}
+        if(IsKeyPressed(KEY_FOUR)){inventory.setSelectedSlot(4);}
+        if(IsKeyPressed(KEY_FIVE)){inventory.setSelectedSlot(5);}
+        if(IsKeyPressed(KEY_SIX)){inventory.setSelectedSlot(6);}
+        if(IsKeyPressed(KEY_SEVEN)){inventory.setSelectedSlot(7);}
+        if(IsKeyPressed(KEY_EIGHT)){inventory.setSelectedSlot(8);}
+        if(IsKeyPressed(KEY_NINE)){inventory.setSelectedSlot(9);}
+
 
         camera.zoom += GetMouseWheelMove() * 0.1f;
         if(camera.zoom < 0.1f) camera.zoom = 0.1f;
@@ -303,7 +330,10 @@ class Player{
             }
 
             if(!isOcupied){
-                worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, "GRASS"));
+                if(inventory.getItemID() != "NONE"){
+                    worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID()));
+                }
+                
             }
 
             
@@ -465,7 +495,10 @@ int main(){
     Player player(winW, winH);
 
     Item Stone = {"Stone", 64, "STONE"};
+    Item Grass = {"Grass", 64, "GRASS"};
     player.getInventory().AddItem(Stone);
+    player.getInventory().AddItem(Stone);
+    player.getInventory().AddItem(Grass);
     
     
 
