@@ -82,8 +82,9 @@ class BlockItem : public Item{
     public:
     std::string placeTileID;
     bool isInteractable;
-    BlockItem(std::string Name, std::string TexID, int amount = 1, bool interact = false) 
-    : Item(Name, TexID, amount, 999), placeTileID(TexID), isInteractable(interact){}
+    bool canCollide;
+    BlockItem(std::string Name, std::string TexID, int amount = 1, bool interact = false, bool solid=true) 
+    : Item(Name, TexID, amount, 999), placeTileID(TexID), isInteractable(interact), canCollide(solid) {}
 
     void OnUse() override {
 
@@ -154,21 +155,23 @@ class Tile : public TextureBlock{
     int dropAmount;
     std::string tileName;
     bool isBlockItem;
+    bool hasCollision;
 
 
-    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name, std::string drop, int amount = 1, bool isBlock = true) 
+    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name, std::string drop, int amount = 1, bool isBlock = true, bool solid = true) 
     : TextureBlock(posX, posY, W, H, textureID){
         tileName = Name;
         dropAmount = amount;
         dropID = drop;
         isBlockItem = isBlock;
+        hasCollision = solid;
     }
 
     Item* CreateDrop(){
         if(isBlockItem){
-            return new BlockItem(dropID, dropID, dropAmount);
+            return new BlockItem(dropID, dropID, dropAmount, hasCollision);
         }
-        return new Item(dropID, dropID, dropAmount);
+        return new Item(dropID, dropID, dropAmount, hasCollision);
     }
 
     virtual void OnInteract(Inventory& playerInv){
@@ -182,7 +185,7 @@ class InteractableTile : public Tile{
 
     public:
     InteractableTile(int posX, int posY, int W, int H, std::string tex, std::string drop)
-    : Tile(posX, posY, W, H, tex, tex, drop, 1, true){}
+    : Tile(posX, posY, W, H, tex, tex, drop, 1, true, true){}
 
 };
 
@@ -464,8 +467,10 @@ Structure CreateBush(){
 
 class Crafter: public InteractableTile{
     public:
-    Crafter(int posX, int posY, float W, float H)
-    : InteractableTile(posX, posY - (H * 0.5f), W*2, H*1.5, "CRAFTER", "CRAFTER"){}
+    Crafter(int posX, int posY, float W, float H, bool solid)
+    : InteractableTile(posX, posY - (H * 0.5f), W*2, H*1.5, "CRAFTER", "CRAFTER"){
+        this->hasCollision = solid;
+    }
 
     void OnInteract(Inventory& inv) override{
         inv.ToggleInventory();
@@ -535,7 +540,7 @@ class Player{
         playerRec.x += deltaX;
 
         for (const auto& tile : worldTiles){
-            if(CheckCollisionRecs(playerRec, tile->getRec())){
+            if(tile->hasCollision && CheckCollisionRecs(playerRec, tile->getRec())){
                 if(deltaX > 0) playerRec.x = tile->getRec().x - playerRec.width;
                 if(deltaX < 0) playerRec.x = tile->getRec().x + tile->getRec().width;
             }
@@ -556,7 +561,7 @@ class Player{
        
         isGrounded = false;
         for (const auto& tile : worldTiles){
-            if(CheckCollisionRecs(playerRec, tile->getRec())){
+            if(tile->hasCollision && CheckCollisionRecs(playerRec, tile->getRec())){
                 if(accelerationY > 0){
                     playerRec.y = tile->getRec().y - playerRec.height;
                     accelerationY = 0;
@@ -643,9 +648,9 @@ class Player{
                             std::string name = bItem->name;
 
                             if(bItem->isInteractable){
-                                worldTiles.push_back(new Crafter(snappedX, snappedY, tileSize, tileSize));
+                                worldTiles.push_back(new Crafter(snappedX, snappedY, tileSize, tileSize, false));
                             }else{
-                                worldTiles.push_back(new Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1, true));
+                                worldTiles.push_back(new Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1, true, bItem->canCollide));
                             }
 
                             
@@ -798,12 +803,13 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile*>& wor
             float caveThreashold = 0.02f + (depth * 0.12f);
 
             bool isCave = fabs(caveShape - 0.25f) < caveThreashold;
-
+            
             if(!isCave){
                 std::string name;
                 std::string drop;
                 int dropAmount = 1;
-                bool isPlaceable;
+                bool isPlaceable = true;
+                bool hasCollision = true;
                 if(surfaceY < 5) {
                     name = "SNOW";
                     drop = "SNOW";
@@ -837,7 +843,6 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile*>& wor
                     name = "DIRT";
                     drop = "DIRT";
                     dropAmount = 1;
-                    isPlaceable = true;
                 }
                 else{
                     float oreNoise = Noise2D(x * 0.4f, y*0.4f, seed + 999);
@@ -845,26 +850,24 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile*>& wor
                         name = "AMBERORE";
                         drop = "AMBERORE";
                         dropAmount = 5;
-                        isPlaceable = true;
                     }else{
                         float stoneNoise = Noise2D(x*0.5f, y*0.5f, seed + 777);
                         if(stoneNoise > 0.8f){
                             name = "COBBLESTONE";
                             drop = "COBBLESTONE";
                             dropAmount = 1;
-                            isPlaceable = true;
                         }else{
                             name = "STONE";
                             drop = "COBBLESTONE";
                             dropAmount = 1;
-                            isPlaceable = true;
+                            hasCollision = true;
                         }
                     }
                 }
                 
 
                 
-                worldTiles.push_back(new Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount, isPlaceable));
+                worldTiles.push_back(new Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount, isPlaceable, hasCollision));
             }
 
             
@@ -902,7 +905,7 @@ int main(){
     
     
     Player player(winW, winH);
-    Item* crafter = new BlockItem("CRAFTER", "CRAFTER", 999, true);
+    Item* crafter = new BlockItem("CRAFTER", "CRAFTER", 999, true, false);
     player.getInventory().AddItem(crafter);
 
 
