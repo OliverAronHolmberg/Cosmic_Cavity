@@ -35,9 +35,9 @@ void Player::Update(World& world, int tileSize){
     playerRec.x += deltaX;
 
     for (auto const& tile : world.tiles){
-        if(tile->hasCollision && CheckCollisionRecs(playerRec, tile->getRec())){
-            if(deltaX > 0) playerRec.x = tile->getRec().x - playerRec.width;
-            if(deltaX < 0) playerRec.x = tile->getRec().x + tile->getRec().width;
+        if(tile.hasCollision && CheckCollisionRecs(playerRec, tile.getRec())){
+            if(deltaX > 0) playerRec.x = tile.getRec().x - playerRec.width;
+            if(deltaX < 0) playerRec.x = tile.getRec().x + tile.getRec().width;
         }
     }
 
@@ -53,19 +53,19 @@ void Player::Update(World& world, int tileSize){
     isGrounded = false;
 
     for(auto const& tile : world.tiles){
-        if(tile->hasCollision && CheckCollisionRecs(playerRec, tile->getRec())){
+        if(tile.hasCollision && CheckCollisionRecs(playerRec, tile.getRec())){
             if(accelerationY > 0){
-                playerRec.y = tile->getRec().y - playerRec.height;
+                playerRec.y = tile.getRec().y - playerRec.height;
                 accelerationY = 0;
                 isGrounded = true;
             }else if(accelerationY < 0){
-                playerRec.y = tile->getRec().y + tile->getRec().height;
+                playerRec.y = tile.getRec().y + tile.getRec().height;
                 accelerationY = 0;
             }
         }
     }
 
-    if(isGrounded && (IsKeyDown(KEY_SPACE)) || IsKeyDown(KEY_SPACE) && !inventory.isOpened){
+    if(isGrounded && (IsKeyDown(KEY_SPACE))){
         accelerationY = -jumpHeight;
     }
 
@@ -75,11 +75,10 @@ void Player::Update(World& world, int tileSize){
     if(!inventory.isOpened){
 
         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-            for (int i = 0; i < world.tiles.size(); i++){
-                if(CheckCollisionPointRec(mouseWorldPos, world.tiles[i]->getRec())){
-                    inventory.AddItem(world.tiles[i]->CreateDrop());
-                    delete world.tiles[i];
-                    world.tiles.erase(world.tiles.begin() +  i);
+            for (int i = 0; i < (int)world.tiles.size(); i++){
+                if(CheckCollisionPointRec(mouseWorldPos, world.tiles[i].getRec())){
+                    inventory.AddItem(world.tiles[i].CreateDrop());
+                    world.RemoveTileAt(i);
                     break;
                 }
             }
@@ -88,9 +87,8 @@ void Player::Update(World& world, int tileSize){
         if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)){
             bool occupied = false;
             Rectangle placementRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
-
             for(auto const& t : world.tiles){
-                if(t->getPos().x == snappedX && t->getPos().y == snappedY){
+                if(t.getPos().x == snappedX && t.getPos().y == snappedY){
                     occupied = true;
                     break;
                 }
@@ -111,8 +109,8 @@ void Player::Update(World& world, int tileSize){
 
         if(IsKeyPressed(KEY_E)){
             for (auto& tile : world.tiles){
-                if(CheckCollisionPointRec(mouseWorldPos, tile->getRec())){
-                    tile->OnInteract(inventory);
+                if(CheckCollisionPointRec(mouseWorldPos, tile.getRec())){
+                    tile.OnInteract(inventory);
                     break;
                 }
             }

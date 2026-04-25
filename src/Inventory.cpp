@@ -28,7 +28,6 @@ std::string InventorySlot::getItemID() const {
     return heldItem->textureID;
 }
 
-// THIS HANDLES THE MATH (Only one version!)
 void InventorySlot::incrementItemCount(int amount){
     if(isOccupied && heldItem){
         heldItem->count += amount;
@@ -40,7 +39,6 @@ void InventorySlot::incrementItemCount(int amount){
     }
 }
 
-// THIS HANDLES THE DRAWING (Added the missing DrawSlot)
 void InventorySlot::DrawSlot() {
     DrawTextureScaled(textureAssets.Get(bgTextureID), getRec());
 

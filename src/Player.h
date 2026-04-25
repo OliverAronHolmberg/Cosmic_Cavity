@@ -10,7 +10,7 @@ class Player {
 
     float movementSpeed;
     float gravity = 0.5f;
-    float jumpHeight = 15.0f;
+    float jumpHeight = 20.0f;
     float accelerationY = 0.0f;
     bool isGrounded = false;
     bool isFlying = false;
