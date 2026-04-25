@@ -8,7 +8,7 @@
 
 int winW = 1080;
 int winH = 720;
-
+class Inventory;
 class TextureHandler{
     public:
     std::map<std::string, Texture2D> textures = {};
@@ -45,6 +45,7 @@ void LoadTextures(){
     textures.Load("AMBERORE", "resources/AmberOre.png");
     textures.Load("LOG", "resources/Log.png");
     textures.Load("LEAVES", "resources/Leaves.png");
+    textures.Load("CRAFTER", "resources/Crafter.png");
     
 }
 
@@ -80,15 +81,16 @@ class BlockItem : public Item{
 
     public:
     std::string placeTileID;
-
-    BlockItem(std::string Name, std::string TexID, int amount = 1) 
-    : Item(Name, TexID, amount, 999), placeTileID(TexID){}
+    bool isInteractable;
+    BlockItem(std::string Name, std::string TexID, int amount = 1, bool interact = false) 
+    : Item(Name, TexID, amount, 999), placeTileID(TexID), isInteractable(interact){}
 
     void OnUse() override {
 
     }
 
 };
+
 
 class ToolItem : public Item{
     public:
@@ -98,6 +100,23 @@ class ToolItem : public Item{
 
     }
 };
+
+
+struct Ingredient{
+    std::string id;
+    int amount;
+};
+
+struct Recipie{
+    std::string resultID;
+    int resultAmount;
+    std::vector<Ingredient> ingredients;
+    bool isBlock;
+};
+
+
+
+
 
 
 
@@ -136,6 +155,7 @@ class Tile : public TextureBlock{
     std::string tileName;
     bool isBlockItem;
 
+
     Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name, std::string drop, int amount = 1, bool isBlock = true) 
     : TextureBlock(posX, posY, W, H, textureID){
         tileName = Name;
@@ -151,8 +171,23 @@ class Tile : public TextureBlock{
         return new Item(dropID, dropID, dropAmount);
     }
 
+    virtual void OnInteract(Inventory& playerInv){
+
+    }
+
 
 };
+
+class InteractableTile : public Tile{
+
+    public:
+    InteractableTile(int posX, int posY, int W, int H, std::string tex, std::string drop)
+    : Tile(posX, posY, W, H, tex, tex, drop, 1, true){}
+
+};
+
+
+
 
 class itemUI : public TextureBlock{
 
@@ -174,67 +209,6 @@ class itemUI : public TextureBlock{
 
 };
 
-
-
-
-
-
-
-
-
-struct TileOffset{
-    int dx;
-    int dy;
-    std::string name;
-};
-
-struct Structure{
-    std::vector<TileOffset> tiles;
-};
-
-Structure CreateTree(){
-    Structure tree;
-    tree.tiles.push_back({0, 0, "LOG"});
-    tree.tiles.push_back({0, -1, "LOG"});
-    tree.tiles.push_back({0, -2, "LOG"});
-    tree.tiles.push_back({0, -3, "LOG"});
-
-    tree.tiles.push_back({0, -4, "LEAVES"});
-    tree.tiles.push_back({-1, -4, "LEAVES"});
-    tree.tiles.push_back({-2, -4, "LEAVES"});
-    tree.tiles.push_back({1, -4, "LEAVES"});
-    tree.tiles.push_back({2, -4, "LEAVES"});
-    
-    tree.tiles.push_back({0, -5, "LEAVES"});
-    tree.tiles.push_back({-1, -5, "LEAVES"});
-    tree.tiles.push_back({-2, -5, "LEAVES"});
-    tree.tiles.push_back({1, -5, "LEAVES"});
-    tree.tiles.push_back({2, -5, "LEAVES"});
-
-    tree.tiles.push_back({0, -6, "LEAVES"});
-    tree.tiles.push_back({-1, -6, "LEAVES"});
-    tree.tiles.push_back({1, -6, "LEAVES"});
-
-
-    
-
-    return tree;
-    
-}
-
-Structure CreateBush(){
-    Structure bush;
-
-    bush.tiles.push_back({0, 0, "LEAVES"});
-    bush.tiles.push_back({1, 0, "LEAVES"});
-    bush.tiles.push_back({-1, 0, "LEAVES"});
-    bush.tiles.push_back({0, 1, "LEAVES"});
-    bush.tiles.push_back({1, 1, "LEAVES"});
-    
-
-
-    
-}
 
 class InventorySlot : public itemUI{
     Item* heldItem = nullptr;
@@ -302,19 +276,27 @@ class InventorySlot : public itemUI{
 
 class Inventory{
     std::vector<InventorySlot> slots;
+    std::vector<InventorySlot> craftingSlots;
     int rows = 5;
     int cols = 9;
+    int craftingRows = 3;
+    int craftingCols = 3;
     int x;
     int y;
     int w;
     int h;
     int selectedSlot = 0;
+    
 
     public:
     bool isOpened = false;
+    bool craftingMenu = false;
     int GetInventoryToggle() {return isOpened;}
     void ToggleInventory() {isOpened = !isOpened;}
     void setSelectedSlot(int slotNumber){selectedSlot = slotNumber - 1;}
+    void ToggleCraftingMenu(){
+        craftingMenu = !craftingMenu;
+    }
     std::string getItemID() {
         return slots[selectedSlot].getItemID();
     }
@@ -336,6 +318,10 @@ class Inventory{
         int totalGridWidth = (cols * slotSize) + ((cols -1) * padding);
         int centeredOffset = (W - totalGridWidth) / 2;
 
+        
+
+        
+
         for (int r = 0; r < rows; r++){
             for (int c = 0; c < cols; c++){
                 int slotX = X + centeredOffset + (c* (slotSize + padding));
@@ -343,6 +329,17 @@ class Inventory{
                 slots.push_back(InventorySlot(slotX, slotY, slotSize, slotSize));
             }
         }
+
+        for (int rc = 0; rc < craftingCols; rc++){
+            for(int rr = 0; rr<craftingRows; rr++){
+                int slotX = X + centeredOffset + (rc* (slotSize + padding));
+                int slotY =(Y-((rows-1)*(slotSize+padding))) -(slotSize+padding) -(rr * (slotSize+padding)) - 20;
+                craftingSlots.push_back(InventorySlot(slotX, slotY, slotSize, slotSize));
+            }
+        }
+        int resultX = X + centeredOffset + (2* (slotSize + padding)) + 200;
+        int resultY = (Y-((rows-1)*(slotSize+padding))) -(slotSize+padding) -(1 * (slotSize+padding)) - 20;
+        craftingSlots.push_back(InventorySlot(resultX, resultY, slotSize, slotSize));
 
 
     }
@@ -353,6 +350,11 @@ class Inventory{
             DrawRectangle(0,0, winW, winH, ColorAlpha(DARKGRAY, 0.75f));
             for (auto& slot : slots){
                 slot.DrawSlot();
+                if(craftingMenu){
+                    for (auto& slot : craftingSlots){
+                        slot.DrawSlot();
+                    }
+                }
             }
 
         }else{
@@ -404,6 +406,75 @@ class Inventory{
 
 
 
+
+struct TileOffset{
+    int dx;
+    int dy;
+    std::string name;
+};
+
+struct Structure{
+    std::vector<TileOffset> tiles;
+};
+
+Structure CreateTree(){
+    Structure tree;
+    tree.tiles.push_back({0, 0, "LOG"});
+    tree.tiles.push_back({0, -1, "LOG"});
+    tree.tiles.push_back({0, -2, "LOG"});
+    tree.tiles.push_back({0, -3, "LOG"});
+
+    tree.tiles.push_back({0, -4, "LEAVES"});
+    tree.tiles.push_back({-1, -4, "LEAVES"});
+    tree.tiles.push_back({-2, -4, "LEAVES"});
+    tree.tiles.push_back({1, -4, "LEAVES"});
+    tree.tiles.push_back({2, -4, "LEAVES"});
+    
+    tree.tiles.push_back({0, -5, "LEAVES"});
+    tree.tiles.push_back({-1, -5, "LEAVES"});
+    tree.tiles.push_back({-2, -5, "LEAVES"});
+    tree.tiles.push_back({1, -5, "LEAVES"});
+    tree.tiles.push_back({2, -5, "LEAVES"});
+
+    tree.tiles.push_back({0, -6, "LEAVES"});
+    tree.tiles.push_back({-1, -6, "LEAVES"});
+    tree.tiles.push_back({1, -6, "LEAVES"});
+
+
+    
+
+    return tree;
+    
+}
+
+Structure CreateBush(){
+    Structure bush;
+
+    bush.tiles.push_back({0, 0, "LEAVES"});
+    bush.tiles.push_back({1, 0, "LEAVES"});
+    bush.tiles.push_back({-1, 0, "LEAVES"});
+    bush.tiles.push_back({0, 1, "LEAVES"});
+    bush.tiles.push_back({1, 1, "LEAVES"});
+    
+
+
+    
+}
+
+
+class Crafter: public InteractableTile{
+    public:
+    Crafter(int posX, int posY, float W, float H)
+    : InteractableTile(posX, posY - (H * 0.5f), W*2, H*1.5, "CRAFTER", "CRAFTER"){}
+
+    void OnInteract(Inventory& inv) override{
+        inv.ToggleInventory();
+        inv.ToggleCraftingMenu();
+    }
+};
+
+
+
 class Player{
     int slotSize = 75;
     int invMargin = 10;
@@ -415,6 +486,10 @@ class Player{
     int snappedY;
 
     Inventory inventory;
+
+   
+
+    
 
     Texture2D invTex = textures.Get("INVENTORYSLOT");
 
@@ -445,7 +520,7 @@ class Player{
 
     
 
-    void Update(std::vector<Tile>& worldTiles, int tileSize){
+    void Update(std::vector<Tile*>& worldTiles, int tileSize){
     
         
 
@@ -460,9 +535,9 @@ class Player{
         playerRec.x += deltaX;
 
         for (const auto& tile : worldTiles){
-            if(CheckCollisionRecs(playerRec, tile.getRec())){
-                if(deltaX > 0) playerRec.x = tile.getRec().x - playerRec.width;
-                if(deltaX < 0) playerRec.x = tile.getRec().x + tile.getRec().width;
+            if(CheckCollisionRecs(playerRec, tile->getRec())){
+                if(deltaX > 0) playerRec.x = tile->getRec().x - playerRec.width;
+                if(deltaX < 0) playerRec.x = tile->getRec().x + tile->getRec().width;
             }
         }
 
@@ -481,14 +556,14 @@ class Player{
        
         isGrounded = false;
         for (const auto& tile : worldTiles){
-            if(CheckCollisionRecs(playerRec, tile.getRec())){
+            if(CheckCollisionRecs(playerRec, tile->getRec())){
                 if(accelerationY > 0){
-                    playerRec.y = tile.getRec().y - playerRec.height;
+                    playerRec.y = tile->getRec().y - playerRec.height;
                     accelerationY = 0;
                     isGrounded = true;
                 }
                 else if(accelerationY < 0){
-                playerRec.y  = tile.getRec().y + tile.getRec().height;
+                playerRec.y  = tile->getRec().y + tile->getRec().height;
                 accelerationY = 0;
             }
             }
@@ -517,6 +592,19 @@ class Player{
         if(IsKeyPressed(KEY_NINE)){inventory.setSelectedSlot(9);}
 
 
+
+
+        //Inventory
+        if(IsKeyPressed(KEY_E)){
+            for(auto& tile : worldTiles){
+                if(CheckCollisionPointRec(mousePos, tile->getRec())){
+                    tile->OnInteract(inventory);
+                    break;
+                }
+            }
+        }
+
+
         // camera.zoom += GetMouseWheelMove() * 0.1f;
         // if(camera.zoom < 0.1f) camera.zoom = 0.1f;
         // if(camera.zoom > 3.0f) camera.zoom = 3.0f;
@@ -529,10 +617,11 @@ class Player{
     
             //Tile Placement
             if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)){
+
                 bool isOcupied = false;
     
                 for (const auto& tile : worldTiles){
-                    if(tile.getPos().x == snappedX && tile.getPos().y == snappedY){
+                    if(tile->getPos().x == snappedX && tile->getPos().y == snappedY){
                         isOcupied = true;
                         break;
                     }
@@ -552,7 +641,14 @@ class Player{
                         if(bItem != nullptr){
                             std::string ID = bItem->placeTileID;
                             std::string name = bItem->name;
-                            worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1, true));
+
+                            if(bItem->isInteractable){
+                                worldTiles.push_back(new Crafter(snappedX, snappedY, tileSize, tileSize));
+                            }else{
+                                worldTiles.push_back(new Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1, true));
+                            }
+
+                            
                             inventory.removeItemFromSelected(1);
                         } 
 
@@ -571,14 +667,14 @@ class Player{
     
     
                 for (int i = 0; i < worldTiles.size(); i++){
-                    if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
+                    if(CheckCollisionPointRec(mousePos, worldTiles[i]->getRec())){
     
-                        std::string dropID = worldTiles[i].dropID;
-                        int dropAmount = worldTiles[i].dropAmount;
-                        std::string dropName = worldTiles[i].tileName;
+                        std::string dropID = worldTiles[i]->dropID;
+                        int dropAmount = worldTiles[i]->dropAmount;
+                        std::string dropName = worldTiles[i]->tileName;
 
     
-                        Item* droppedItem = worldTiles[i].CreateDrop();
+                        Item* droppedItem = worldTiles[i]->CreateDrop();
                         inventory.AddItem(droppedItem);
     
                         worldTiles.erase(worldTiles.begin()+i);
@@ -624,6 +720,8 @@ class Player{
 };
 
 
+
+
 float Noise1D(float x, float seed){
 
     auto hash = [](int x) {
@@ -665,16 +763,16 @@ float Noise2D(float x, float y, float seed){
     return x1 + uy * (x2 - x1);
 }
 
-bool isTileAt(int tx, int ty, const std::vector<Tile>& worldTiles, int tileSize){
+bool isTileAt(int tx, int ty, const std::vector<Tile*>& worldTiles, int tileSize){
         for(const auto& tile : worldTiles){
-            if(tile.getPos().x == tx * tileSize && tile.getPos().y == ty*tileSize){
+            if(tile->getPos().x == tx * tileSize && tile->getPos().y == ty*tileSize){
                 return true;
             }
         }
         return false;
     }
 
-void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worldTiles){
+void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile*>& worldTiles){
     float seed = GetRandomValue(1, 10000);
     float caveSize = 0.05f;
     
@@ -724,11 +822,11 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                             int tx = x + offset.dx;
                             int ty = surfaceY + offset.dy;
 
-                            if(!isTileAt(tx, ty, worldTiles, tileSize)){
-                                std::string texID = offset.name;
-                                for (auto & c : texID) c = toupper(c);
-                                worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, texID, texID, dropAmount, isPlaceable));
-                            }
+                            // if(!isTileAt(tx, ty, worldTiles, tileSize)){
+                            //     std::string texID = offset.name;
+                            //     for (auto & c : texID) c = toupper(c);
+                            //     worldTiles.push_back(new Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, texID, texID, dropAmount, isPlaceable));
+                            // }
 
                             
                         }
@@ -766,7 +864,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                 
 
                 
-                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount, isPlaceable));
+                worldTiles.push_back(new Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount, isPlaceable));
             }
 
             
@@ -775,43 +873,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
     }
 }
 
-class WorldObject {
-    public:
-        Rectangle rec;
-        std::string ID;
-        bool hasCollision;
-        bool isInteractable;
 
-        float drawWidth;
-        float drawHeight;
-
-        WorldObject(float x, float y, float w, float h, std::string id, bool col){
-            rec = {x, y, w, h};
-            drawWidth = w;
-            drawHeight = h;
-            ID = id;
-            hasCollision = col;
-        }
-
-    virtual void Update()
-    {
-        
-    } 
-    virtual void Draw(){
-        DrawTextureFromTextures(textures.Get(ID), rec);
-
-    }
-};
-
-class Door : public WorldObject{
-    public:
-    bool isOpened = false;
-    void Interact(){
-        isOpened = !isOpened;
-        hasCollision = isOpened;
-        ID = isOpened ? "DOOR_OPEN" : "DOOR_CLOSED";
-    }
-};
 
 
 
@@ -823,13 +885,13 @@ int main(){
     
     int FPS = 60;
 
-    InitWindow(winW, winH, "Cavity Cascade");
+    InitWindow(winW, winH, "Cosmic Cavity");
     SetTargetFPS(FPS);
     LoadTextures();
     
     
 
-    std::vector<Tile> worldTiles = {};
+    std::vector<Tile*> worldTiles;
 
     int tileSize = 120;
     int worldW = 1500;
@@ -840,7 +902,8 @@ int main(){
     
     
     Player player(winW, winH);
-
+    Item* crafter = new BlockItem("CRAFTER", "CRAFTER", 999, true);
+    player.getInventory().AddItem(crafter);
 
 
     while(!WindowShouldClose()){
@@ -863,13 +926,13 @@ int main(){
 
         
         for(int id = 0; id < worldTiles.size(); id++){
-            Rectangle tileRec = worldTiles[id].getRec();
+            Rectangle tileRec = worldTiles[id]->getRec();
             if (tileRec.x + tileRec.width > viewLeft - margin &&
                 tileRec.x < viewRight + margin &&
                 tileRec.y + tileRec.height > viewTop - margin &&
                 tileRec.y < viewBottom + margin)
                 {
-                    worldTiles[id].DrawTile();
+                    worldTiles[id]->DrawTile();
                 }
             
             
