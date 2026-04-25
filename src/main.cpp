@@ -123,11 +123,54 @@ class itemUI : public TextureBlock{
 
 };
 
-struct Item{
-    std::string name = "Empty";
-    int count = 0;
-    std::string textureID = "NONE";
+
+
+
+
+
+class Item {
+    public:
+    std::string name;
+    std::string textureID;
+    int count;
+    int max;
+
+
+    Item(std::string Name, std::string texID, int amount = 1, int maxAmount = 999)
+    : name(Name), textureID(texID), count(amount), max(maxAmount) {}
+
+    virtual ~Item() = default;
+
+    virtual void OnUse(){
+        
+    }
+    
+
 };
+
+class BlockItem : public Item{
+
+    public:
+    std::string placeTileID;
+
+    BlockItem(std::string Name, std::string TexID, int amount = 1) 
+    : Item(Name, TexID, count, 999), placeTileID(TexID){}
+
+    void OnUse() override {
+
+    }
+
+};
+
+class ToolItem : public Item{
+    public:
+    ToolItem(std::string Name, std::string TexID) : Item(Name, TexID, 1, 1) {}
+
+    void OnUse() override {
+
+    }
+};
+
 
 
 struct TileOffset{
@@ -185,7 +228,7 @@ Structure CreateBush(){
 }
 
 class InventorySlot : public itemUI{
-    Item heldItem;
+    Item* heldItem = nullptr;
     bool isOccupied = false;
     int x;
     int y;
@@ -200,26 +243,26 @@ class InventorySlot : public itemUI{
         h = H;
     }
     
-    void SetItem(Item newItem){
+    void SetItem(Item* newItem){
         heldItem = newItem;
-        isOccupied = true;
+        isOccupied = (heldItem != nullptr);
     }
 
     bool getOccupied() {return isOccupied;}
-    std::string getItemName() {return heldItem.name;}
+    std::string getItemName() {return heldItem->name;}
     std::string getItemID() {
-        if(!isOccupied || heldItem.count <= 0) return "NONE";
-        return heldItem.textureID;
+        if(!isOccupied || heldItem->count <= 0) return "NONE";
+        return heldItem->textureID;
     }
 
     void incementItemCount(int amount){
-        heldItem.count += amount;
-        if(heldItem.count <= 0){
+        heldItem->count += amount;
+        if(heldItem->count <= 0){
             
             isOccupied = false;
-            heldItem.count = 0;
-            heldItem.textureID = "NONE";
-            heldItem.name = "Empty";
+            heldItem->count = 0;
+            heldItem->textureID = "NONE";
+            heldItem->name = "Empty";
         }else{
             isOccupied = true;
         }
@@ -229,17 +272,19 @@ class InventorySlot : public itemUI{
         this->DrawTile();
 
        
-        if(isOccupied && heldItem.textureID != "NONE"){
+        if(isOccupied && heldItem){
             Rectangle itemRec = { (float)x + 5, (float)y + 5, (float)w - 10, (float)h - 10};
-            DrawTextureFromTextures(textures.Get(heldItem.textureID), itemRec);
-            DrawText(TextFormat("%i", heldItem.count), x + 5, y + 5, 20, WHITE);
+            DrawTextureFromTextures(textures.Get(heldItem->textureID), itemRec);
+            DrawText(TextFormat("%i", heldItem->count), x + 5, y + 5, 20, WHITE);
         }
         
 
         
 
     }
-    
+
+
+    ~InventorySlot() {delete heldItem;}
 };
 
 class Inventory{
@@ -307,13 +352,13 @@ class Inventory{
     void removeItemFromSelected(int amount){
         slots[selectedSlot].incementItemCount(-amount);
     }
-    bool AddItem(Item newItem){
+    bool AddItem(Item* newItem){
 
 
         // Add Existing Item
         for(auto& slot : slots){
-            if (slot.getOccupied() && slot.getItemName() == newItem.name){
-                slot.incementItemCount(newItem.count);
+            if (slot.getOccupied() && slot.getItemName() == newItem->name){
+                slot.incementItemCount(newItem->count);
                 return true;
             }
         }
@@ -508,9 +553,9 @@ class Player{
                         std::string dropID = worldTiles[i].dropID;
                         int dropAmount = worldTiles[i].dropAmount;
                         std::string dropName = worldTiles[i].tileName;
-                        
+
     
-                        Item droppedItem = {dropID, dropAmount, dropID};
+                        Item* droppedItem = new Item(dropID, dropID, dropAmount);
                         inventory.AddItem(droppedItem);
     
                         worldTiles.erase(worldTiles.begin()+i);
@@ -768,8 +813,6 @@ int main(){
     Player player(winW, winH);
 
 
-    Item droppedItem = {"DEBUG", 999, "DEBUG"};
-    player.getInventory().AddItem(droppedItem);
 
     while(!WindowShouldClose()){
 
