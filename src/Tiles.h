@@ -28,7 +28,8 @@ class TextureBlock{
         ID = textureID;
     }
     virtual void DrawTile(){
-        DrawTextureScaled(textureAssets.Get("ID"), rec);
+        // Use the tile's actual ID to fetch the correct texture
+        DrawTextureScaled(textureAssets.Get(ID), rec);
     }
     virtual ~TextureBlock() = default;
 };
@@ -61,11 +62,3 @@ class InteractableTile : public Tile{
     : Tile(posX, posY, W, H, tex, tex, drop, 1, true, true){}
 };
 
-class Crafter : public InteractableTile{
-    public:
-    Crafter(int posX, int posY, float W, float H, bool solid)
-    : InteractableTile(posX, posY, W, H, "CRAFTER", "CRAFTER"){
-        hasCollision = solid;
-    }
-    void OnInteract(Inventory& inv) override;
-};

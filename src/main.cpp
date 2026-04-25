@@ -60,7 +60,7 @@ int main(){
 
         
         player.Update(gameWorld, tileSize);
-BeginDrawing();
+        BeginDrawing();
         ClearBackground(SKYBLUE);
 
         BeginMode2D(player.getCamera());

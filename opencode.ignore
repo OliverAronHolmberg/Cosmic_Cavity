@@ -1,0 +1,6 @@
+resources/**
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.bmp

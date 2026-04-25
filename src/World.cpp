@@ -10,10 +10,6 @@ World::~World() {
 }
 
 Tile* World::CreateTileFromID(std::string blockID, int x, int y, int tileSize){
-    if(blockID == "CRAFTER"){
-        return new Crafter(x, y, tileSize, tileSize, false);
-    }
-
     bool hasCollision = true;
     std::string dropItem = blockID;
 
@@ -88,9 +84,9 @@ void World::Generate(int tileSize, int worldW, int worldH){
                 }
                
                 tiles.push_back(new Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount, isPlaceable, hasCollision));
+            }
         }
     }
-}
 }
 
 float World::Noise1D(float x, float seed) {

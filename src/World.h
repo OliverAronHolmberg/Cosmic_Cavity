@@ -23,4 +23,5 @@ class World{
     float Noise1D(float x, float seed);
     float Noise2D(float x, float y, float seed);
     void CreateStructure(int startX, int startY, int tileSize);
+    
 };
