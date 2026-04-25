@@ -89,7 +89,16 @@ class TextureBlock{
 
 class Tile : public TextureBlock{
     public:
-    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name) : TextureBlock(posX, posY, W, H, textureID){}
+    std::string dropID;
+    int dropAmount;
+    std::string tileName;
+
+    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name, std::string drop, int amount = 1) : TextureBlock(posX, posY, W, H, textureID){
+        tileName = Name;
+        dropAmount = amount;
+        dropID = drop;
+
+    }
 
 
 };
@@ -425,7 +434,7 @@ class Player{
             }
             }
         }
-        if(IsKeyDown(KEY_W) && isGrounded && !Isflying){
+        if((IsKeyDown(KEY_W) && isGrounded && !Isflying) || (IsKeyDown(KEY_SPACE) && isGrounded && !Isflying)){
             accelerationY = -jumpHeight;
             isGrounded = false;
         }
@@ -477,7 +486,9 @@ class Player{
                 if(!isOcupied && !hitsPlayer){
     
                     if(inventory.getItemID() != "NONE"){
-                        worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, inventory.getItemID(), inventory.getItemID()));
+                        std::string ID = inventory.getItemID();
+                        std::string name = inventory.getSelectedItemName();
+                        worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1));
                         inventory.removeItemFromSelected(1);
                     }
                     
@@ -494,10 +505,12 @@ class Player{
                 for (int i = 0; i < worldTiles.size(); i++){
                     if(CheckCollisionPointRec(mousePos, worldTiles[i].getRec())){
     
-                        std::string dropID = worldTiles[i].ID;
+                        std::string dropID = worldTiles[i].dropID;
+                        int dropAmount = worldTiles[i].dropAmount;
+                        std::string dropName = worldTiles[i].tileName;
                         
     
-                        Item droppedItem = {dropID, 1, dropID};
+                        Item droppedItem = {dropID, dropAmount, dropID};
                         inventory.AddItem(droppedItem);
     
                         worldTiles.erase(worldTiles.begin()+i);
@@ -622,11 +635,17 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
 
             if(!isCave){
                 std::string name;
+                std::string drop;
+                int dropAmount = 1;
                 if(surfaceY < 5) {
-                    name = "Snow";
+                    name = "SNOW";
+                    drop = "SNOW";
+                    dropAmount = 1;
                 }
                 else if (y == surfaceY){
-                    name = "Grass";
+                    name = "GRASS";
+                    drop = "GRASS";
+                    dropAmount = 1;
                     float spawnNoise = Noise1D(x*0.5f, seed + 1234);
 
                     if(spawnNoise > 0.9f && name == "Grass"){
@@ -638,7 +657,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                             if(!isTileAt(tx, ty, worldTiles, tileSize)){
                                 std::string texID = offset.name;
                                 for (auto & c : texID) c = toupper(c);
-                                worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, name));
+                                worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, texID, texID, dropAmount));
                             }
 
                             
@@ -647,25 +666,33 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                     
 
                 }else if (y < surfaceY + 6){
-                    name = "Dirt";
+                    name = "DIRT";
+                    drop = "DIRT";
+                    dropAmount = 1;
                 }
                 else{
                     float oreNoise = Noise2D(x * 0.4f, y*0.4f, seed + 999);
                     if (oreNoise < 0.1f && y > 100){
-                        name = "AmberOre";
+                        name = "AMBERORE";
+                        drop = "AMBERORE";
+                        dropAmount = 5;
                     }else{
                         float stoneNoise = Noise2D(x*0.5f, y*0.5f, seed + 777);
                         if(stoneNoise > 0.8f){
-                            name = "CobbleStone";
+                            name = "COBBLESTONE";
+                            drop = "COBBLESTONE";
+                            dropAmount = 1;
                         }else{
-                            name = "Stone";
+                            name = "STONE";
+                            drop = "COBBLESTONE";
+                            dropAmount = 1;
                         }
                     }
                 }
                 
-                std::string texID = name;
-                for (auto & c : texID) c = toupper(c);
-                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, texID, name));
+
+                
+                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount));
             }
 
             
