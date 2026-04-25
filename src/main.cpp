@@ -56,6 +56,48 @@ void DrawTextureFromTextures(Texture2D texture, Rectangle rec){
 }
 
 
+class Item {
+    public:
+    std::string name;
+    std::string textureID;
+    int count;
+    int max;
+
+
+    Item(std::string Name, std::string texID, int amount = 1, int maxAmount = 999)
+    : name(Name), textureID(texID), count(amount), max(maxAmount) {}
+
+    virtual ~Item() = default;
+
+    virtual void OnUse(){
+        
+    }
+    
+
+};
+
+class BlockItem : public Item{
+
+    public:
+    std::string placeTileID;
+
+    BlockItem(std::string Name, std::string TexID, int amount = 1) 
+    : Item(Name, TexID, amount, 999), placeTileID(TexID){}
+
+    void OnUse() override {
+
+    }
+
+};
+
+class ToolItem : public Item{
+    public:
+    ToolItem(std::string Name, std::string TexID) : Item(Name, TexID, 1, 1) {}
+
+    void OnUse() override {
+
+    }
+};
 
 
 
@@ -92,12 +134,21 @@ class Tile : public TextureBlock{
     std::string dropID;
     int dropAmount;
     std::string tileName;
+    bool isBlockItem;
 
-    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name, std::string drop, int amount = 1) : TextureBlock(posX, posY, W, H, textureID){
+    Tile(int posX, int posY, int W, int H, std::string textureID, std::string Name, std::string drop, int amount = 1, bool isBlock = true) 
+    : TextureBlock(posX, posY, W, H, textureID){
         tileName = Name;
         dropAmount = amount;
         dropID = drop;
+        isBlockItem = isBlock;
+    }
 
+    Item* CreateDrop(){
+        if(isBlockItem){
+            return new BlockItem(dropID, dropID, dropAmount);
+        }
+        return new Item(dropID, dropID, dropAmount);
     }
 
 
@@ -128,48 +179,6 @@ class itemUI : public TextureBlock{
 
 
 
-class Item {
-    public:
-    std::string name;
-    std::string textureID;
-    int count;
-    int max;
-
-
-    Item(std::string Name, std::string texID, int amount = 1, int maxAmount = 999)
-    : name(Name), textureID(texID), count(amount), max(maxAmount) {}
-
-    virtual ~Item() = default;
-
-    virtual void OnUse(){
-        
-    }
-    
-
-};
-
-class BlockItem : public Item{
-
-    public:
-    std::string placeTileID;
-
-    BlockItem(std::string Name, std::string TexID, int amount = 1) 
-    : Item(Name, TexID, count, 999), placeTileID(TexID){}
-
-    void OnUse() override {
-
-    }
-
-};
-
-class ToolItem : public Item{
-    public:
-    ToolItem(std::string Name, std::string TexID) : Item(Name, TexID, 1, 1) {}
-
-    void OnUse() override {
-
-    }
-};
 
 
 
@@ -256,17 +265,21 @@ class InventorySlot : public itemUI{
     }
 
     void incementItemCount(int amount){
+        if(!heldItem) return;
+
         heldItem->count += amount;
         if(heldItem->count <= 0){
             
+            delete heldItem;
+            heldItem = nullptr;
             isOccupied = false;
-            heldItem->count = 0;
-            heldItem->textureID = "NONE";
-            heldItem->name = "Empty";
         }else{
             isOccupied = true;
         }
     }
+
+    Item* getHeldItem() {return heldItem;}
+    
 
     void DrawSlot(){
         this->DrawTile();
@@ -309,6 +322,7 @@ class Inventory{
         return slots[selectedSlot].getItemName();
     }
     
+    Item* getCurrentSelectedItem() {return slots[selectedSlot].getHeldItem();}
 
     Inventory(int X, int Y, int W, int H){
         x = X;
@@ -529,13 +543,22 @@ class Player{
                 bool hitsPlayer = CheckCollisionRecs(playerRec, placementRec);
     
                 if(!isOcupied && !hitsPlayer){
-    
-                    if(inventory.getItemID() != "NONE"){
-                        std::string ID = inventory.getItemID();
-                        std::string name = inventory.getSelectedItemName();
-                        worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1));
-                        inventory.removeItemFromSelected(1);
+                    
+                    Item* currentItem = inventory.getCurrentSelectedItem();
+
+                    if(currentItem != nullptr){
+                        BlockItem* bItem = dynamic_cast<BlockItem*>(currentItem);
+
+                        if(bItem != nullptr){
+                            std::string ID = bItem->placeTileID;
+                            std::string name = bItem->name;
+                            worldTiles.push_back(Tile(snappedX, snappedY, tileSize, tileSize, ID, name, ID, 1, true));
+                            inventory.removeItemFromSelected(1);
+                        } 
+
                     }
+
+                    
                     
                 }
     
@@ -555,7 +578,7 @@ class Player{
                         std::string dropName = worldTiles[i].tileName;
 
     
-                        Item* droppedItem = new Item(dropID, dropID, dropAmount);
+                        Item* droppedItem = worldTiles[i].CreateDrop();
                         inventory.AddItem(droppedItem);
     
                         worldTiles.erase(worldTiles.begin()+i);
@@ -682,6 +705,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                 std::string name;
                 std::string drop;
                 int dropAmount = 1;
+                bool isPlaceable;
                 if(surfaceY < 5) {
                     name = "SNOW";
                     drop = "SNOW";
@@ -691,6 +715,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                     name = "GRASS";
                     drop = "GRASS";
                     dropAmount = 1;
+                    isPlaceable = false;
                     float spawnNoise = Noise1D(x*0.5f, seed + 1234);
 
                     if(spawnNoise > 0.9f && name == "Grass"){
@@ -702,7 +727,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                             if(!isTileAt(tx, ty, worldTiles, tileSize)){
                                 std::string texID = offset.name;
                                 for (auto & c : texID) c = toupper(c);
-                                worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, texID, texID, dropAmount));
+                                worldTiles.push_back(Tile(tx*tileSize, ty*tileSize, tileSize, tileSize, texID, texID, texID, dropAmount, isPlaceable));
                             }
 
                             
@@ -714,6 +739,7 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                     name = "DIRT";
                     drop = "DIRT";
                     dropAmount = 1;
+                    isPlaceable = true;
                 }
                 else{
                     float oreNoise = Noise2D(x * 0.4f, y*0.4f, seed + 999);
@@ -721,23 +747,26 @@ void GenerateWorld(int tileSize, int worldW, int worldH, std::vector<Tile>& worl
                         name = "AMBERORE";
                         drop = "AMBERORE";
                         dropAmount = 5;
+                        isPlaceable = true;
                     }else{
                         float stoneNoise = Noise2D(x*0.5f, y*0.5f, seed + 777);
                         if(stoneNoise > 0.8f){
                             name = "COBBLESTONE";
                             drop = "COBBLESTONE";
                             dropAmount = 1;
+                            isPlaceable = true;
                         }else{
                             name = "STONE";
                             drop = "COBBLESTONE";
                             dropAmount = 1;
+                            isPlaceable = true;
                         }
                     }
                 }
                 
 
                 
-                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount));
+                worldTiles.push_back(Tile(x*tileSize, y*tileSize, tileSize, tileSize, name, name, drop, dropAmount, isPlaceable));
             }
 
             
