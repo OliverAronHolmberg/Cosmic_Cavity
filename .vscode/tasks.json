@@ -10,10 +10,10 @@
             "args": [
                 "-g",
                 "-O0",
-                "-std=c++14",
-                "-o",
+                "-std=c++17",
+                "-o", "${workspaceFolder}/main.exe",
                 "main.exe",
-                "src/main.cpp",
+                "src/*.cpp",
                 "-IC:/raylib/raylib/src",
                 "-LC:/raylib/raylib/src",
                 "-lraylib",
