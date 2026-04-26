@@ -4,6 +4,8 @@ Cavity Cascivity is a game somewhere between Terraria and Starfield. It focuses 
 
 The goal of the project is to explore the technical challanges of procedual generation and game engine architecture using the Raylib framework.
 
+<img width="1918" height="1033" alt="Screenshot 2026-04-26 184449" src="https://github.com/user-attachments/assets/a4180a16-a53c-40e1-8240-7cf8ffe1ae1d" />
+
 ## Features and Mechanics
 - Noise Generated Planets: Each planet is generated with seeds to determine its traits. This ensurs an identical generation blueprint, allowing player to replicate and share the exact same planet generation thouhg multiple runs. 
 - Tile Destruction: Every tile is destructable, and can therefore be mined and destroyed for resources.
