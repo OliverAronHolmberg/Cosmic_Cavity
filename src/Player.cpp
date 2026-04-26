@@ -56,7 +56,6 @@ void Player::Update(World& world, int tileSize) {
     if (current && current->count > 0) {
         BlockItem* bItem = dynamic_cast<BlockItem*>(current);
         if (bItem) {
-         
             auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
             bool occupied = false;
 
@@ -83,17 +82,20 @@ void Player::Update(World& world, int tileSize) {
 }
 
    
-        
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
             if (world.chunks.count(mouseCoords)) {
                 auto& tiles = world.chunks[mouseCoords].tiles;
                 for (size_t i = 0; i < tiles.size(); i++) {
                     if (CheckCollisionPointRec(mouseWorldPos, tiles[i].getRec())) {
-                        Item* drop = tiles[i].CreateDrop();
-                        if (inventory.AddItem(drop)) {
+                        Item* dropData = tiles[i].CreateDrop();
+                        
+                        if (dropData) {
+                            float spawnX = tiles[i].getPos().x + (tileSize / 4.0f);
+                            float spawnY = tiles[i].getPos().y + (tileSize / 4.0f);
+                         
+                            world.SpawnPhysicalDrop(dropData, spawnX, spawnY, 0, 0);
+                            
                             world.RemoveTileAt(snappedX, snappedY, tileSize);
-                        } else {
-                            delete drop;
                         }
                         break;
                     }

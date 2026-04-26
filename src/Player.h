@@ -24,4 +24,6 @@ public:
     Vector2 GetMouseWorldPos() { return mouseWorldPos; }
     
     void SetFlying(bool state) { isFlying = state; }
+
+    
 };

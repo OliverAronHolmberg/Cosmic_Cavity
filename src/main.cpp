@@ -70,9 +70,12 @@ int main(){
 
 
     while(!WindowShouldClose()){
-
+        float dt = GetFrameTime();
         
         player.Update(gameWorld, tileSize);
+
+        
+
         BeginDrawing();
         if(player.GetRect().y < (40*tileSize)){
             ClearBackground(SKYBLUE);
@@ -82,7 +85,10 @@ int main(){
         
         BeginMode2D(player.getCamera());
         gameWorld.Draw(player.getCamera(), winW, winH, tileSize);
+
         player.DrawHighlights(tileSize);
+        gameWorld.DrawItems();
+        gameWorld.UpdateItems(player, dt, tileSize);
         player.Draw();
         EndMode2D();
 

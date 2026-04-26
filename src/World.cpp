@@ -1,6 +1,10 @@
 #include "World.h"
 #include <cmath>
 #include <raymath.h>
+#include "ItemDrop.h" 
+#include "Player.h"   
+#include <random>
+
 
 World::World() {}
 
@@ -8,7 +12,7 @@ World::~World() {
     chunks.clear();
 }
 
-// Converts a raw pixel position into chunk grid coordinates
+
 std::pair<int, int> World::GetChunkCoords(int x, int y, int tileSize) {
     int chunkSizePixels = CHUNK_SIZE * tileSize;
     int cx = floor((float)x / chunkSizePixels);
@@ -27,7 +31,6 @@ void World::RemoveTileAt(int worldX, int worldY, int tileSize) {
     if (chunks.count(coords)) {
         auto& v = chunks[coords].tiles;
         for (int i = 0; i < v.size(); i++) {
-            // Check if the tile center or corner matches the snapped coordinates
             if ((int)v[i].getPos().x == worldX && (int)v[i].getPos().y == worldY) {
                 v.erase(v.begin() + i);
                 break;
@@ -64,8 +67,6 @@ void World::Generate(int tileSize, int worldW, int worldH) {
                     else if (stoneNoise > 0.85f) tile = {"COBBLESTONE", "COBBLESTONE", "COBBLESTONE", 1, true, TileShape::FULL_BLOCK};
                     else tile = {"STONE", "STONE", "COBBLESTONE", 1, true, TileShape::FULL_BLOCK};
                 }
-
-                // Add to chunk instead of global vector
                 AddTile(tile, x * tileSize, y * tileSize, tileSize);
             }
         }
@@ -111,35 +112,93 @@ float World::Noise2D(float x, float y, float seed) {
 
 
 void World::Explode(Vector2 center, float radius, int tileSize) {
-    int chunkSizePixels = CHUNK_SIZE * tileSize;
-    
-    int startCX = (int)floor((center.x - radius) / chunkSizePixels);
-    int endCX   = (int)floor((center.x + radius) / chunkSizePixels);
-    int startCY = (int)floor((center.y - radius) / chunkSizePixels);
-    int endCY   = (int)floor((center.y + radius) / chunkSizePixels);
-
-  
-    for (int cx = startCX; cx <= endCX; cx++) {
-        for (int cy = startCY; cy <= endCY; cy++) {
+    for (auto& chunkEntry : chunks) {
+        auto& tiles = chunkEntry.second.tiles;
+        for (auto it = tiles.begin(); it != tiles.end(); ) {
             
-            std::pair<int, int> chunkKey = {cx, cy};
+            Vector2 tilePos = it->getPos();
+            float dist = Vector2Distance(center, tilePos);
+            
+            if (dist <= radius) {
+                Item* drop = it->CreateDrop();
+                if (drop) {
+                    float dirX = tilePos.x - center.x;
+                    float dirY = tilePos.y - center.y;
+                    float force = 40.0f; 
+                    float vx = (dirX / (dist + 0.1f)) * force;
+                    float vy = (dirY / (dist + 0.1f)) * force;
+                    vy -= 5.0f;
 
-       
-            if (chunks.find(chunkKey) != chunks.end()) {
-                auto& v = chunks[chunkKey].tiles;
-                
-     
-                for (auto it = v.begin(); it != v.end(); ) {
-                    Vector2 tilePos = { it->getPos().x + (tileSize / 2.0f), it->getPos().y + (tileSize / 2.0f) };
-                    
-   
-                    if (CheckCollisionPointCircle(tilePos, center, radius)) {
-                        it = v.erase(it); 
-                    } else {
-                        ++it;
-                    }
+                    SpawnPhysicalDrop(drop, tilePos.x, tilePos.y, vx, vy);
                 }
+
+                it = tiles.erase(it);
+            } else {
+                it++;
             }
         }
     }
+
+
+    for (auto* item : droppedItems) {
+        Vector2 itemPos = { item->GetRect().x + item->GetRect().width / 2.0f, 
+                            item->GetRect().y + item->GetRect().height / 2.0f };
+        
+        float dist = Vector2Distance(center, itemPos);
+
+        if (dist <= radius) {
+            float dirX = itemPos.x - center.x;
+            float dirY = itemPos.y - center.y;
+            
+            float force = 40.0f;
+            float vx = (dirX / (dist + 0.1f)) * force;
+            float vy = (dirY / (dist + 0.1f)) * force;
+            vy -= 5.0f; 
+
+            item->SetVelocity({ vx, vy });
+        }
+    }
+}
+
+void World::AddDroppedItem(ItemDrop* item) {
+    droppedItems.push_back(item);
+}
+
+void World::UpdateItems(Player& player, float dt, int tileSize) {
+    for (auto it = droppedItems.begin(); it != droppedItems.end();) {
+        ItemDrop* item = *it;
+        item->Update(*this, tileSize, dt);
+
+      
+        if (item->isExpired()) {
+            delete item;
+            it = droppedItems.erase(it);
+            continue; // Move to next item
+        }
+        if (CheckCollisionRecs(player.GetRect(), item->GetRect())) {
+            if (player.getInventory().AddItem(item->itemData)) {
+                delete item;
+                it = droppedItems.erase(it);
+                continue;
+            }
+        }
+        
+        it++;
+    }
+}
+
+void World::DrawItems() {
+    for (auto* item : droppedItems) {
+        if (item != nullptr) {
+            item->Draw(); 
+        }
+    }
+}
+
+void World::SpawnPhysicalDrop(Item* data, float x, float y, int velX, int velY) {
+    if (!data) return;
+    
+
+    ItemDrop* newDrop = new ItemDrop(data, x, y, velX, velY);
+    droppedItems.push_back(newDrop);
 }

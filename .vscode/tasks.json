@@ -17,6 +17,7 @@
                 "src/Entity.cpp", 
                 "src/Items.cpp",
                 "src/Tiles.cpp",
+                "src/ItemDrop.cpp",
                 "src/TextureHandler.cpp",
                 "src/Player.cpp",
                 "src/Inventory.cpp",

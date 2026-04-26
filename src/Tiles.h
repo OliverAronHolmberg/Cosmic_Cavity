@@ -72,5 +72,4 @@ public:
 
     Item* CreateDrop();
     void OnInteract(Inventory& playerInv, World& world, int tileSize);
-    // getRec() defined above to avoid duplicates will be removed to prevent overload issues
 };
