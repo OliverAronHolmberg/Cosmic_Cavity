@@ -16,7 +16,7 @@ public:
     Entity(float x, float y, float w, float h, float speed);
     virtual ~Entity() = default;
 
-    void ApplyPhysics(World& world, int tileSize);
+    void ApplyPhysics(World& world, int tileSize, float dt);
 
     Rectangle GetRect() const { return rect; }
     bool IsGrounded() const { return isGrounded; }

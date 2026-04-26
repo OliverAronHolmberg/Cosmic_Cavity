@@ -7,9 +7,9 @@ Entity::Entity(float x, float y, float w, float h, float speed) {
     movementSpeed = speed;
 }
 
-void Entity::ApplyPhysics(World& world, int tileSize) {
+void Entity::ApplyPhysics(World& world, int tileSize, float dt) {
 
-    rect.x += velocity.x;
+    rect.x += velocity.x * dt * 60.0f;
 
 
     auto pCoords = world.GetChunkCoords((int)rect.x, (int)rect.y, tileSize);
@@ -32,7 +32,7 @@ void Entity::ApplyPhysics(World& world, int tileSize) {
         velocity.y += gravity;
     }
     
-    rect.y += velocity.y;
+    rect.y += velocity.y * 60.0f * dt;
     isGrounded = false;
 
 

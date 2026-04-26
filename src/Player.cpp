@@ -13,6 +13,7 @@ Player::Player(int winW, int winH)
 }
 
 void Player::Update(World& world, int tileSize) {
+    float dt = GetFrameTime();
     mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
     snappedX = (int)(std::floor(mouseWorldPos.x / tileSize)) * tileSize;
     snappedY = (int)(std::floor(mouseWorldPos.y / tileSize)) * tileSize;
@@ -41,7 +42,7 @@ void Player::Update(World& world, int tileSize) {
     }
 
 
-    ApplyPhysics(world, tileSize);
+    ApplyPhysics(world, tileSize, dt);
 
    
     camera.target = { rect.x + rect.width / 2.0f, rect.y + rect.height / 2.0f };
@@ -51,19 +52,35 @@ void Player::Update(World& world, int tileSize) {
         auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
 
         if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-            Item* current = inventory.getCurrentSelectedItem();
-            if (current && current->count > 0) {
-                BlockItem* bItem = dynamic_cast<BlockItem*>(current);
-                if (bItem) {
-                    Rectangle placementRec = { (float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize };
-                    if (!CheckCollisionRecs(rect, placementRec)) {
-                        world.AddTile(bItem->blueprint, snappedX, snappedY, tileSize);
-                        bItem->count--;
-                        inventory.updateActiveSlot();
+    Item* current = inventory.getCurrentSelectedItem();
+    if (current && current->count > 0) {
+        BlockItem* bItem = dynamic_cast<BlockItem*>(current);
+        if (bItem) {
+         
+            auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
+            bool occupied = false;
+
+            if (world.chunks.count(mouseCoords)) {
+                for (const auto& t : world.chunks[mouseCoords].tiles) {
+              
+                    if ((int)t.getPos().x == snappedX && (int)t.getPos().y == snappedY) {
+                        occupied = true;
+                        break;
                     }
                 }
             }
+
+          
+            Rectangle placementRec = { (float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize };
+            
+            if (!occupied && !CheckCollisionRecs(rect, placementRec)) {
+                world.AddTile(bItem->blueprint, snappedX, snappedY, tileSize);
+                bItem->count--;
+                inventory.updateActiveSlot();
+            }
         }
+    }
+}
 
    
         
@@ -100,7 +117,6 @@ void Player::Update(World& world, int tileSize) {
 
 void Player::Draw() {
     Texture2D sprite = textureAssets.Get("PLAYER");
-    // Offset slightly for the "oversized" look your sprite logic had
     Rectangle dest = { rect.x - 15, rect.y - 25, rect.width + 30, rect.height + 25 };
     DrawTextureScaled(sprite, dest);
 }
