@@ -23,6 +23,7 @@ public:
     Tile CreateTileFromBlueprint(TileDef def, int x, int y, int tileSize);
     void Generate(int tileSize, int worldW, int worldH);
     void Draw(Camera2D camera, int screenW, int screenH, int tileSize);
+    void Explode(Vector2 center, float radius, int tileSize);
 
     std::pair<int, int> GetChunkCoords(int worldX, int worldY, int tileSize);
     void AddTile(TileDef def, int x, int y, int tileSize);

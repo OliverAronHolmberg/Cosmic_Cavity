@@ -143,7 +143,7 @@ void Player::Update(World& world, int tileSize) {
             if (world.chunks.count(mouseCoords)) {
                 for (auto& tile : world.chunks[mouseCoords].tiles) {
                     if (CheckCollisionPointRec(mouseWorldPos, tile.getRec())) {
-                        tile.OnInteract(inventory);
+                        tile.OnInteract(inventory, world, tileSize);
                         break;
                     }
                 }

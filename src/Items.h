@@ -32,6 +32,17 @@ public:
     void OnUse(World& world, int x, int y) override;
 };
 
+class ExplosiveBlock : public BlockItem{
+    public:
+    float blastRadius;
+
+    ExplosiveBlock(std::string Name, TileDef tileData, int amount = 1, float radius = 150.0f)
+    : BlockItem(Name, tileData, amount), blastRadius(radius) {}
+
+    void OnUse(World& world, int x, int y, int tileSize);
+};
+
+
 class ToolItem : public Item {
 public:
     int power; 

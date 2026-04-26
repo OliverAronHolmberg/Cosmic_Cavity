@@ -60,8 +60,12 @@ int main(){
     Player player(winW, winH);
     TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 999, false, TileShape::FULL_BLOCK};
     TileDef stoneWallDef = {"STONEWALL","STONEWALL", "STONEWALL", 999, false, TileShape::FULL_BLOCK};
+
+    TileDef explosiveDef = {"TNT","TNT", "TNT", 999, true, TileShape::FULL_BLOCK, true, 800.0f};
+
     player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 999));
     player.getInventory().AddItem(new BlockItem("STONEWALL", stoneWallDef, 999));
+    player.getInventory().AddItem(new ExplosiveBlock("TNT", explosiveDef, 999));
 
 
     while(!WindowShouldClose()){

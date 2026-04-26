@@ -4,8 +4,10 @@
 #include "TextureHandler.h"
 
 
+
 class Inventory;
 class Item;
+class World;
 
 enum class TileShape {
     FULL_BLOCK,
@@ -23,6 +25,8 @@ struct TileDef {
     int dropAmount = 1;
     bool hasCollision = true;
     TileShape shape = TileShape::FULL_BLOCK;
+    bool isExplosive = false;
+    float explosionRadius =  0.0f;
 };
 
 class Tile {
@@ -67,5 +71,5 @@ public:
     std::string GetName() const { return type.name; }
 
     Item* CreateDrop();
-    void OnInteract(Inventory& playerInv);
+    void OnInteract(Inventory& playerInv, World& world, int tileSize);
 };

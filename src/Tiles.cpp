@@ -1,6 +1,7 @@
 #include "Tiles.h"
 #include "Items.h"
 #include "Inventory.h"
+#include "World.h"
 
 
 
@@ -16,7 +17,11 @@ Item* Tile::CreateDrop() {
     return new BlockItem(dropBlueprint.name, dropBlueprint, type.dropAmount);
 }
 
-void Tile::OnInteract(Inventory& playerInv) {
-
+void Tile::OnInteract(Inventory& playerInv, World& world, int tileSize) {
+    if (type.isExplosive) {
+        float centerX = pos.x + (tileSize / 2.0f);
+        float centerY = pos.y + (tileSize / 2.0f);
+        
+        world.Explode({centerX, centerY}, type.explosionRadius, tileSize);
+    }
 }
-
