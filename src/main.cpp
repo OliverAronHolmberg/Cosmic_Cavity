@@ -21,6 +21,8 @@ void LoadTextures(){
     textureAssets.Load("LOG", "resources/Log.png");
     textureAssets.Load("LEAVES", "resources/Leaves.png");
     textureAssets.Load("CRAFTER", "resources/Crafter.png");
+    textureAssets.Load("COPPARORE", "resources/CopparOre.png");
+    textureAssets.Load("IRONORE", "resources/IronOre.png");
 
 }
 
@@ -29,11 +31,14 @@ int main(){
     
     const int winW = 1080;
     const int winH = 720;
-
+    bool debugMode = true;
+    std::string gameName = "Cosmic Cavity";
+    std::string gameVersion = "Beta 1";
     
     int FPS = 60;
 
-    InitWindow(winW, winH, "Cosmic Cavity");
+    
+    InitWindow(winW, winH, gameName.c_str());
     SetTargetFPS(FPS);
     LoadTextures();
     
@@ -52,8 +57,8 @@ int main(){
     
     
     Player player(winW, winH);
-    Item* crafter = new BlockItem("CRAFTER", "CRAFTER", 999, true, false);
-    player.getInventory().AddItem(crafter);
+    TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 999, false, TileShape::FULL_BLOCK};
+    player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 999));
 
 
     while(!WindowShouldClose()){
@@ -61,16 +66,29 @@ int main(){
         
         player.Update(gameWorld, tileSize);
         BeginDrawing();
-        ClearBackground(SKYBLUE);
-
+        if(player.playerRec.y < (40*tileSize)){
+            ClearBackground(SKYBLUE);
+        }else{
+            ClearBackground(DARKBROWN);
+        }
+        
         BeginMode2D(player.getCamera());
         gameWorld.Draw(player.getCamera(), winW, winH, tileSize);
         player.DrawHighlights(tileSize);
         player.Draw();
         EndMode2D();
+
+        
         
         player.getInventory().DrawInventory(winW, winH);
-        DrawFPS(10, 10);
+        if(debugMode){
+            DrawText(TextFormat("%s : %s",gameName.c_str(), gameVersion.c_str()), 10, 10, 20, WHITE);
+            DrawText(TextFormat("FPS: %d", GetFPS()), 10, 50, 20, WHITE);
+            DrawText(TextFormat("Delta Time: %.4.f ms", GetFrameTime()), 10, 70, 20, WHITE);
+            DrawText(TextFormat("X, Y Pos: %.0f, %.0f", player.playerRec.x / tileSize, player.playerRec.y / tileSize), 10, 110, 20, WHITE);
+            
+        }
+        
         EndDrawing();
 
     }   

@@ -2,67 +2,104 @@
 #include <cmath>
 
 World::World() {
-    // Constructor logic if needed
+
 }
 
 World::~World() {
-    // Tiles are stored by value to reduce fragmentation and allocations
+    
     tiles.clear();
 }
 
-Tile World::CreateTileFromID(std::string blockID, int x, int y, int tileSize) {
-    bool hasCollision = true;
-    std::string dropItem = blockID;
-    return Tile(x, y, tileSize, tileSize, blockID, blockID, dropItem, 1, true, hasCollision);
-}
 
-// Fixed GetTileAt: This is used for removal and collision
 Tile World::GetTileAt(int worldX, int worldY) {
     for (Tile &t : tiles) {
-        Rectangle r = t.getRec();
-        if (CheckCollisionPointRec({(float)worldX, (float)worldY}, r)) {
+        if (CheckCollisionPointRec({(float)worldX, (float)worldY}, t.getRec())) {
             return t;
         }
     }
-    // Return a dummy tile (non-existent)
-    return Tile(0, 0, 0, 0, "NONE", "NONE", "NONE", 0, false, false);
+
+
+    return Tile(0, 0, 0, 0, {"NONE", "NONE", "NONE", 0, false, TileShape::WALL});
 }
 
-// Fixed RemoveTileAt: Use this in your main loop when clicking
+
 void World::RemoveTileAt(int index) {
     if (index >= 0 && index < (int)tiles.size()) {
         tiles.erase(tiles.begin() + index);
     }
 }
 
-// Empty shell to prevent errors
+
 void World::CreateStructure(int startX, int startY, int tileSize) {
-    // Logic for trees/houses goes here later
+
 }
 
 void World::Generate(int tileSize, int worldW, int worldH) {
     float seed = (float)GetRandomValue(1, 10000);
-    float caveSize = 0.05f;
     
+    tiles.reserve(worldW * 60);
+
     for (int x = 0; x < worldW; x++) {
+   
         float mountains = Noise1D(x * 0.05f, seed) * 30.0f;
         float jagged = Noise1D(x * 0.2f, seed + 100) * 5.0f;
-        int surfaceY = 30 + (int)(mountains + jagged); // Lowered surface for visibility
+        int surfaceY = 15 + (int)(mountains + jagged);
 
         for (int y = surfaceY; y < worldH; y++) {
             float depth = (float)(y - surfaceY) / (float)(worldH - surfaceY);
-            float caveShape = Noise2D(x * caveSize, y * caveSize, seed + 500);
-            float caveThreshold = 0.1f + (depth * 0.1f); 
+            
+       
+            float caveShape = Noise2D(x * 0.05f, y * 0.05f, seed + 500);
+        
+            float caveThreshold = 0.1f + (depth * 0.1f);
+            bool isCave = fabs(caveShape) < caveThreshold;
 
-            if (fabs(caveShape) > caveThreshold) {
+            if (!isCave) {
+                TileDef tile;
                 std::string name = "STONE";
-                if (y == surfaceY) name = "GRASS";
-                else if (y < surfaceY + 4) name = "DIRT";
+                std::string drop = "COBBLESTONE";
+                int dropAmount = 1;
+                bool isPlaceable = true;
+                bool hasCollision = true;
+                if (surfaceY < 5) {
+                    tile = {"SNOW", "SNOW", "SNOW", 1, true, TileShape::FULL_BLOCK};
+                }
+                else if (y == surfaceY) {
+                    tile = {"GRASS", "GRASS", "GRASS", 1, true, TileShape::FULL_BLOCK};
+                }
+                else if (y < surfaceY + 4) {
+                    tile = {"DIRT", "DIRT", "DIRT", 1, true, TileShape::FULL_BLOCK};
+                }
+                else {
+                    float oreNoise = Noise2D(x * 0.6f, y * 0.6f, seed + 999);
+                    float stoneNoise = Noise2D(x * 0.5f, y * 0.5f, seed + 777);
 
-                tiles.emplace_back(x * tileSize, y * tileSize, tileSize, tileSize, name, name, name, 1, true, true);
+                    if (y > 100 && oreNoise > 0.8f) {
+                        tile = {"AMBERORE", "AMBERORE", "AMBERORE", 1, true, TileShape::FULL_BLOCK};
+                    }
+                    else if (y > 30 && oreNoise > 0.88f){
+                        tile = {"COPPARORE", "COPPARORE", "COPPARORE", 1, true, TileShape::FULL_BLOCK};
+                    }
+                    else if (y > 60 && oreNoise > 0.75f){
+                        tile = {"IRONORE", "IRONORE", "IRONORE", 1, true, TileShape::FULL_BLOCK};
+                    }
+                    else if (stoneNoise > 0.85f) {
+                        tile = {"COBBLESTONE", "COBBLESTONE", "COBBLESTONE", 1, true, TileShape::FULL_BLOCK};
+                    } 
+                    else {
+                        tile = {"STONE", "STONE", "COBBLESTONE", 1, false, TileShape::FULL_BLOCK};
+                    }
+                }
+
+                tiles.emplace_back(x * tileSize, y * tileSize, tileSize, tileSize, tile);
             }
         }
     }
+}
+
+Tile World::CreateTileFromBlueprint(TileDef def, int x, int y, int tileSize) {
+
+    return Tile((float)x, (float)y, (float)tileSize, (float)tileSize, def);
 }
 
 float World::Noise1D(float x, float seed) {
@@ -87,7 +124,9 @@ void World::Draw(Camera2D camera, int screenW, int screenH, int tileSize) {
             rec.y + rec.height > viewTop - margin &&
             rec.y < viewBottom + margin) 
         {
-            t.DrawTile();
+            t.Draw();
         }
     }
 }
+
+

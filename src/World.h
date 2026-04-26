@@ -11,7 +11,9 @@ public:
     Texture2D* cachedTexture;
     std::vector<Tile> tiles;
 
-    Tile CreateTileFromID(std::string blockID, int x, int y, int tileSize);
+
+    Tile CreateTileFromBlueprint(TileDef def, int x, int y, int tileSize);
+
     void Generate(int tileSize, int worldW, int worldH);
     void Draw(Camera2D camera, int screenW, int screenH, int tileSize);
 

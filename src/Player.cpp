@@ -35,7 +35,7 @@ void Player::Update(World& world, int tileSize){
     playerRec.x += deltaX;
 
     for (auto const& tile : world.tiles){
-        if(tile.hasCollision && CheckCollisionRecs(playerRec, tile.getRec())){
+        if(tile.HasCollision() && CheckCollisionRecs(playerRec, tile.getRec())){
             if(deltaX > 0) playerRec.x = tile.getRec().x - playerRec.width;
             if(deltaX < 0) playerRec.x = tile.getRec().x + tile.getRec().width;
         }
@@ -53,7 +53,7 @@ void Player::Update(World& world, int tileSize){
     isGrounded = false;
 
     for(auto const& tile : world.tiles){
-        if(tile.hasCollision && CheckCollisionRecs(playerRec, tile.getRec())){
+        if(tile.HasCollision() && CheckCollisionRecs(playerRec, tile.getRec())){
             if(accelerationY > 0){
                 playerRec.y = tile.getRec().y - playerRec.height;
                 accelerationY = 0;
@@ -74,36 +74,51 @@ void Player::Update(World& world, int tileSize){
 
     if(!inventory.isOpened){
 
-        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-            for (int i = 0; i < (int)world.tiles.size(); i++){
-                if(CheckCollisionPointRec(mouseWorldPos, world.tiles[i].getRec())){
-                    inventory.AddItem(world.tiles[i].CreateDrop());
-                    world.RemoveTileAt(i);
-                    break;
-                }
-            }
-        }
-
-        if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)){
+        if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
             bool occupied = false;
-            Rectangle placementRec = {(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize};
-            for(auto const& t : world.tiles){
-                if(t.getPos().x == snappedX && t.getPos().y == snappedY){
+            Rectangle placementRec = { (float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize };
+
+            for (auto const& t : world.tiles) {
+                if (t.getPos().x == snappedX && t.getPos().y == snappedY) {
                     occupied = true;
                     break;
                 }
             }
-            if(!occupied && !CheckCollisionRecs(playerRec, placementRec)){
-                Item* current = inventory.getCurrentSelectedItem();
-                if(current){
-                    BlockItem* bItem = dynamic_cast<BlockItem*>(current);
-                    if(bItem){
-                        world.tiles.push_back(world.CreateTileFromID(bItem->placeTileID, snappedX, snappedY, tileSize));
-                        inventory.removeItemFromSelected(1);
+
+            Item* current = inventory.getCurrentSelectedItem();
+            if (current && current->count > 0) {
+                BlockItem* bItem = dynamic_cast<BlockItem*>(current);
+                
+                if (bItem) {
+                    bool canPlace = !occupied;
+                    if (bItem->blueprint.hasCollision && CheckCollisionRecs(playerRec, placementRec)) {
+                        canPlace = false;
+                    }
+
+                    if (canPlace) {
+                        world.tiles.push_back(world.CreateTileFromBlueprint(bItem->blueprint, snappedX, snappedY, tileSize));
+                        
+                        bItem->count--;
+                        inventory.updateActiveSlot();
                     }
                 }
             }
-
+        }
+  
+        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            for (int i = 0; i < (int)world.tiles.size(); i++) {
+                if (CheckCollisionPointRec(mouseWorldPos, world.tiles[i].getRec())) {
+                    Item* drop = world.tiles[i].CreateDrop();
+      
+                    if (inventory.AddItem(drop)) {
+                        world.RemoveTileAt(i);
+                    } else {
+                        delete drop;
+                    }
+                    
+                    break;
+                }
+            }
         }
 
 
