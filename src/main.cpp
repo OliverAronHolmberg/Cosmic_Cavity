@@ -24,6 +24,7 @@ void LoadTextures(){
     textureAssets.Load("CRAFTER", "resources/Crafter.png");
     textureAssets.Load("COPPARORE", "resources/CopparOre.png");
     textureAssets.Load("IRONORE", "resources/IronOre.png");
+    textureAssets.Load("TNT", "resources/TNT.png");
 
 }
 
