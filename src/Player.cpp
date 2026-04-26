@@ -1,20 +1,16 @@
 #include "Player.h"
+#include "TextureHandler.h"
 #include <cmath>
 
-
-Player::Player(int winW, int winH) : inventory((winW-540) /2, winH-85, 540, 75){
-
-    playerRec = {0, 0, 75, 175};
-
+Player::Player(int winW, int winH) 
+    : Entity(100.0f, 100.0f, 75.0f, 175.0f, 8.0f), 
+      inventory((winW - 540) / 2, winH - 85, 540, 75) 
+{
     camera = { 0 };
-    camera.target = {playerRec.x, playerRec.y};
-    camera.offset = {winW/2.0f, winH/2.0f};
+    camera.offset = { winW / 2.0f, winH / 2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
-
-    movementSpeed = 8.0f;
-};
-
+}
 
 void Player::Update(World& world, int tileSize) {
     mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
@@ -28,90 +24,39 @@ void Player::Update(World& world, int tileSize) {
     }
 
 
-    float deltaX = 0;
+    velocity.x = 0; 
     if (!inventory.isOpened) {
-        if (IsKeyDown(KEY_D)) deltaX += movementSpeed;
-        if (IsKeyDown(KEY_A)) deltaX -= movementSpeed;
-    }
-    playerRec.x += deltaX;
+        if (IsKeyDown(KEY_D)) velocity.x = movementSpeed;
+        if (IsKeyDown(KEY_A)) velocity.x = -movementSpeed;
+        
+        if (isGrounded && IsKeyDown(KEY_SPACE)) {
+            velocity.y = -jumpHeight;
+        }
 
-
-    auto pCoords = world.GetChunkCoords((int)playerRec.x, (int)playerRec.y, tileSize);
-    for (int cx = -1; cx <= 1; cx++) {
-        for (int cy = -1; cy <= 1; cy++) {
-            std::pair<int, int> targetChunk = { pCoords.first + cx, pCoords.second + cy };
-            if (world.chunks.count(targetChunk)) {
-                for (auto const& tile : world.chunks[targetChunk].tiles) {
-                    if (tile.HasCollision() && CheckCollisionRecs(playerRec, tile.getRec())) {
-                        if (deltaX > 0) playerRec.x = tile.getRec().x - playerRec.width;
-                        if (deltaX < 0) playerRec.x = tile.getRec().x + tile.getRec().width;
-                    }
-                }
-            }
+        if (isFlying) {
+            velocity.y = 0;
+            if (IsKeyDown(KEY_W)) velocity.y = -movementSpeed;
+            if (IsKeyDown(KEY_S)) velocity.y = movementSpeed;
         }
     }
 
 
-    if (!isFlying) {
-        accelerationY += gravity;
-    } else {
-        if (IsKeyDown(KEY_W)) playerRec.y -= movementSpeed;
-        if (IsKeyDown(KEY_S)) playerRec.y += movementSpeed;
-        accelerationY = 0;
-    }
-
-    playerRec.y += accelerationY;
-    isGrounded = false;
-
-    for (int cx = -1; cx <= 1; cx++) {
-        for (int cy = -1; cy <= 1; cy++) {
-            std::pair<int, int> targetChunk = { pCoords.first + cx, pCoords.second + cy };
-            if (world.chunks.count(targetChunk)) {
-                for (auto const& tile : world.chunks[targetChunk].tiles) {
-                    if (tile.HasCollision() && CheckCollisionRecs(playerRec, tile.getRec())) {
-                        if (accelerationY > 0) {
-                            playerRec.y = tile.getRec().y - playerRec.height;
-                            accelerationY = 0;
-                            isGrounded = true;
-                        } else if (accelerationY < 0) {
-                            playerRec.y = tile.getRec().y + tile.getRec().height;
-                            accelerationY = 0;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (isGrounded && IsKeyDown(KEY_SPACE)) accelerationY = -jumpHeight;
-
-    camera.target = { playerRec.x + playerRec.width / 2, playerRec.y + playerRec.height / 2 };
-
-    if (!inventory.isOpened) {
-      
-        auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
+    ApplyPhysics(world, tileSize);
 
    
-        if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
-            bool occupied = false;
-            if (world.chunks.count(mouseCoords)) {
-                for (auto const& t : world.chunks[mouseCoords].tiles) {
-                    if ((int)t.getPos().x == snappedX && (int)t.getPos().y == snappedY) {
-                        occupied = true;
-                        break;
-                    }
-                }
-            }
+    camera.target = { rect.x + rect.width / 2.0f, rect.y + rect.height / 2.0f };
 
+
+    if (!inventory.isOpened) {
+        auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
+
+        if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
             Item* current = inventory.getCurrentSelectedItem();
             if (current && current->count > 0) {
                 BlockItem* bItem = dynamic_cast<BlockItem*>(current);
                 if (bItem) {
-                    bool canPlace = !occupied;
                     Rectangle placementRec = { (float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize };
-                    if (bItem->blueprint.hasCollision && CheckCollisionRecs(playerRec, placementRec)) canPlace = false;
-
-                    if (canPlace) {
+                    if (!CheckCollisionRecs(rect, placementRec)) {
                         world.AddTile(bItem->blueprint, snappedX, snappedY, tileSize);
                         bItem->count--;
                         inventory.updateActiveSlot();
@@ -120,24 +65,25 @@ void Player::Update(World& world, int tileSize) {
             }
         }
 
-
+   
+        
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
             if (world.chunks.count(mouseCoords)) {
-                auto& chunkTiles = world.chunks[mouseCoords].tiles;
-                for (int i = 0; i < (int)chunkTiles.size(); i++) {
-                    if (CheckCollisionPointRec(mouseWorldPos, chunkTiles[i].getRec())) {
-                        Item* drop = chunkTiles[i].CreateDrop();
+                auto& tiles = world.chunks[mouseCoords].tiles;
+                for (size_t i = 0; i < tiles.size(); i++) {
+                    if (CheckCollisionPointRec(mouseWorldPos, tiles[i].getRec())) {
+                        Item* drop = tiles[i].CreateDrop();
                         if (inventory.AddItem(drop)) {
-                            // Important: We call our new coordinate-based remove
                             world.RemoveTileAt(snappedX, snappedY, tileSize);
                         } else {
                             delete drop;
                         }
-                        break; 
+                        break;
                     }
                 }
             }
         }
+
 
         if (IsKeyPressed(KEY_E)) {
             if (world.chunks.count(mouseCoords)) {
@@ -152,22 +98,15 @@ void Player::Update(World& world, int tileSize) {
     }
 }
 
-
-void Player::Draw(){
+void Player::Draw() {
     Texture2D sprite = textureAssets.Get("PLAYER");
-    float drawW = playerRec.width + 30;
-    float drawH = playerRec.height + 25;
-    Rectangle dest = {
-        playerRec.x - 15, 
-        playerRec.y - 25,
-        drawW, 
-        drawH
-    };
+    // Offset slightly for the "oversized" look your sprite logic had
+    Rectangle dest = { rect.x - 15, rect.y - 25, rect.width + 30, rect.height + 25 };
     DrawTextureScaled(sprite, dest);
 }
 
-void Player::DrawHighlights(int tileSize){
-    if(!inventory.isOpened){
-        DrawRectangleLinesEx({(float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize}, 3.0f, WHITE);
+void Player::DrawHighlights(int tileSize) {
+    if (!inventory.isOpened) {
+        DrawRectangleLinesEx({ (float)snappedX, (float)snappedY, (float)tileSize, (float)tileSize }, 3.0f, WHITE);
     }
 }

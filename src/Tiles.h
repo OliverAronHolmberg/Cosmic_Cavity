@@ -41,14 +41,14 @@ public:
 
 
     Rectangle getRec() const {
+        Rectangle r = { pos.x, pos.y, width, height };
         if (type.shape == TileShape::SLAB_BOTTOM) {
-            return { pos.x, pos.y + (height / 2), width, height / 2 };
+            r.height = height * 0.5f;
+            r.y += height * 0.5f;
+        } else if (type.shape == TileShape::SLAB_TOP) {
+            r.height = height * 0.5f;
         }
-        if (type.shape == TileShape::SLAB_TOP) {
-            return { pos.x, pos.y, width, height / 2 };
-        }
-
-        return { pos.x, pos.y, width, height }; 
+        return r;
     }
 
     void Draw() {
@@ -72,4 +72,5 @@ public:
 
     Item* CreateDrop();
     void OnInteract(Inventory& playerInv, World& world, int tileSize);
+    // getRec() defined above to avoid duplicates will be removed to prevent overload issues
 };

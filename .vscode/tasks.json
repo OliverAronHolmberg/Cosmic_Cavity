@@ -14,6 +14,7 @@
                 "-o", "${workspaceFolder}/main.exe",
                 "src/main.cpp",
                 "src/World.cpp",
+                "src/Entity.cpp", 
                 "src/Items.cpp",
                 "src/Tiles.cpp",
                 "src/TextureHandler.cpp",

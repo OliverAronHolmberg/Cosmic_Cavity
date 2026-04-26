@@ -73,7 +73,7 @@ void World::Generate(int tileSize, int worldW, int worldH) {
 }
 
 void World::Draw(Camera2D camera, int screenW, int screenH, int tileSize) {
-    // Frustum Culling: Find visible chunk range
+
     float viewLeft = camera.target.x - (camera.offset.x / camera.zoom);
     float viewTop = camera.target.y - (camera.offset.y / camera.zoom);
     float viewRight = viewLeft + (screenW / camera.zoom);
@@ -86,7 +86,6 @@ void World::Draw(Camera2D camera, int screenW, int screenH, int tileSize) {
     int startCY = floor(viewTop / chunkSizePixels);
     int endCY = floor(viewBottom / chunkSizePixels);
 
-    // Only loop through visible chunks
     for (int cx = startCX; cx <= endCX; cx++) {
         for (int cy = startCY; cy <= endCY; cy++) {
             if (chunks.count({cx, cy})) {
@@ -114,31 +113,26 @@ float World::Noise2D(float x, float y, float seed) {
 void World::Explode(Vector2 center, float radius, int tileSize) {
     int chunkSizePixels = CHUNK_SIZE * tileSize;
     
-    // 1. Calculate the BOUNDARIES in chunk coordinates
-    // We use floor to ensure we get the correct index even for negative coordinates
     int startCX = (int)floor((center.x - radius) / chunkSizePixels);
     int endCX   = (int)floor((center.x + radius) / chunkSizePixels);
     int startCY = (int)floor((center.y - radius) / chunkSizePixels);
     int endCY   = (int)floor((center.y + radius) / chunkSizePixels);
 
-    // DEBUG: Uncomment this to see how many chunks you are checking in your console
-    // printf("Checking Chunks from X:%d to %d, Y:%d to %d\n", startCX, endCX, startCY, endCY);
-
-    // 2. Loop through every chunk in that square range
+  
     for (int cx = startCX; cx <= endCX; cx++) {
         for (int cy = startCY; cy <= endCY; cy++) {
             
             std::pair<int, int> chunkKey = {cx, cy};
 
-            // 3. Only proceed if this chunk actually exists in our map
+       
             if (chunks.find(chunkKey) != chunks.end()) {
                 auto& v = chunks[chunkKey].tiles;
                 
-                // 4. Standard iterator-based removal
+     
                 for (auto it = v.begin(); it != v.end(); ) {
                     Vector2 tilePos = { it->getPos().x + (tileSize / 2.0f), it->getPos().y + (tileSize / 2.0f) };
                     
-                    // Use Raylib's built-in circle-point check
+   
                     if (CheckCollisionPointCircle(tilePos, center, radius)) {
                         it = v.erase(it); 
                     } else {

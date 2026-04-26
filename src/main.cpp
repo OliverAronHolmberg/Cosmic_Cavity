@@ -74,7 +74,7 @@ int main(){
         
         player.Update(gameWorld, tileSize);
         BeginDrawing();
-        if(player.playerRec.y < (40*tileSize)){
+        if(player.GetRect().y < (40*tileSize)){
             ClearBackground(SKYBLUE);
         }else{
             ClearBackground(DARKBROWN);
@@ -93,7 +93,7 @@ int main(){
             DrawText(TextFormat("%s : %s",gameName.c_str(), gameVersion.c_str()), 10, 10, 20, WHITE);
             DrawText(TextFormat("FPS: %d", GetFPS()), 10, 50, 20, WHITE);
             DrawText(TextFormat("Delta Time: %.4.f ms", GetFrameTime()), 10, 70, 20, WHITE);
-            DrawText(TextFormat("X, Y Pos: %.0f, %.0f", player.playerRec.x / tileSize, player.playerRec.y / tileSize), 10, 110, 20, WHITE);
+            DrawText(TextFormat("X, Y Pos: %.0f, %.0f", player.GetRect().x / tileSize, player.GetRect().y / tileSize), 10, 110, 20, WHITE);
             
         }
         
