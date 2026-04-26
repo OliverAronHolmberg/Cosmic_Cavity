@@ -87,7 +87,7 @@ void World::Generate(int tileSize, int worldW, int worldH) {
                         tile = {"COBBLESTONE", "COBBLESTONE", "COBBLESTONE", 1, true, TileShape::FULL_BLOCK};
                     } 
                     else {
-                        tile = {"STONE", "STONE", "COBBLESTONE", 1, false, TileShape::FULL_BLOCK};
+                        tile = {"STONE", "STONE", "COBBLESTONE", 1, true, TileShape::FULL_BLOCK};
                     }
                 }
 
