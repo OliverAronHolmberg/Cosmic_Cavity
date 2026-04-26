@@ -14,6 +14,7 @@ void LoadTextures(){
     textureAssets.Load("GRASS", "resources/Grass.png");
     textureAssets.Load("DIRT", "resources/Dirt.png");
     textureAssets.Load("STONE", "resources/Stone.png");
+    textureAssets.Load("STONEWALL", "resources/StoneWall.png");
     textureAssets.Load("COBBLESTONE", "resources/CobbleStone.png");
     textureAssets.Load("SNOW", "resources/Snow.png");
     textureAssets.Load("PLAYER", "resources/Player.png");
@@ -58,7 +59,9 @@ int main(){
     
     Player player(winW, winH);
     TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 999, false, TileShape::FULL_BLOCK};
+    TileDef stoneWallDef = {"STONEWALL","STONEWALL", "STONEWALL", 999, false, TileShape::FULL_BLOCK};
     player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 999));
+    player.getInventory().AddItem(new BlockItem("STONEWALL", stoneWallDef, 999));
 
 
     while(!WindowShouldClose()){
