@@ -12,23 +12,27 @@ Player::Player(int winW, int winH)
     camera.zoom = 1.0f;
 }
 
-void Player::Update(World& world, int tileSize) {
-    float dt = GetFrameTime();
+void Player::Update(World& world, int tileSize, float dt) {
     mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
     snappedX = (int)(std::floor(mouseWorldPos.x / tileSize)) * tileSize;
     snappedY = (int)(std::floor(mouseWorldPos.y / tileSize)) * tileSize;
 
     if (IsKeyPressed(KEY_TAB)) inventory.ToggleInventory();
 
+    if(inventory.isOpened){
+        inventory.UpdateMouseLogic(&inventory);
+    }
+
     for (int i = 0; i < 9; i++) {
         if (IsKeyPressed(KEY_ONE + i)) inventory.setSelectedSlot(i + 1);
     }
 
 
+
     velocity.x = 0; 
     if (!inventory.isOpened) {
-        if (IsKeyDown(KEY_D)) velocity.x = movementSpeed;
-        if (IsKeyDown(KEY_A)) velocity.x = -movementSpeed;
+        if (IsKeyDown(KEY_D)) velocity.x = movementSpeed*dt*60;
+        if (IsKeyDown(KEY_A)) velocity.x = -movementSpeed*dt*60;
         
         if (isGrounded && IsKeyDown(KEY_SPACE)) {
             velocity.y = -jumpHeight;
@@ -36,8 +40,8 @@ void Player::Update(World& world, int tileSize) {
 
         if (isFlying) {
             velocity.y = 0;
-            if (IsKeyDown(KEY_W)) velocity.y = -movementSpeed;
-            if (IsKeyDown(KEY_S)) velocity.y = movementSpeed;
+            if (IsKeyDown(KEY_W)) velocity.y = -movementSpeed*dt*60;
+            if (IsKeyDown(KEY_S)) velocity.y = movementSpeed*dt*60;
         }
     }
 

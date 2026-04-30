@@ -1,6 +1,6 @@
 # Cosmic Cavity
 
-Cavity Cascivity is a game somewhere between Terraria and Starfield. It focuses on exploration of planets through the galaxy, utilizing noise-generated terrian and a fully destructable enviorment.
+Cavity Cascivity is a game somewhere between Terraria and Astroneer. It focuses on exploration of planets through the galaxy, utilizing noise-generated terrian and a fully destructable enviorment.
 
 The goal of the project is to explore the technical challanges of procedual generation and game engine architecture using the Raylib framework.
 
@@ -23,4 +23,4 @@ Copyright © 2026 Oliver Holmberg. All rights reserved. No part of this project 
 
 ## Inspired by
 - Terraia
-- Starfield
+- Astroneer

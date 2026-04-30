@@ -173,10 +173,11 @@ void World::UpdateItems(Player& player, float dt, int tileSize) {
         if (item->isExpired()) {
             delete item;
             it = droppedItems.erase(it);
-            continue; // Move to next item
+            continue; 
         }
         if (CheckCollisionRecs(player.GetRect(), item->GetRect())) {
             if (player.getInventory().AddItem(item->itemData)) {
+                item->itemData = nullptr;
                 delete item;
                 it = droppedItems.erase(it);
                 continue;

@@ -59,10 +59,10 @@ int main(){
     
     
     Player player(winW, winH);
-    TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 999, false, TileShape::FULL_BLOCK};
-    TileDef stoneWallDef = {"STONEWALL","STONEWALL", "STONEWALL", 999, false, TileShape::FULL_BLOCK};
+    TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 1, false, TileShape::FULL_BLOCK};
+    TileDef stoneWallDef = {"STONEWALL","STONEWALL", "STONEWALL", 1, false, TileShape::FULL_BLOCK};
 
-    TileDef explosiveDef = {"TNT","TNT", "TNT", 999, true, TileShape::FULL_BLOCK, true, 800.0f};
+    TileDef explosiveDef = {"TNT","TNT", "TNT", 1, true, TileShape::FULL_BLOCK, true, 800.0f};
 
     player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 999));
     player.getInventory().AddItem(new BlockItem("STONEWALL", stoneWallDef, 999));
@@ -72,7 +72,7 @@ int main(){
     while(!WindowShouldClose()){
         float dt = GetFrameTime();
         
-        player.Update(gameWorld, tileSize);
+        player.Update(gameWorld, tileSize, dt);
 
         
 
@@ -92,13 +92,15 @@ int main(){
         player.Draw();
         EndMode2D();
 
+
         
         
         player.getInventory().DrawInventory(winW, winH);
+        player.getInventory().DrawMouseItem();
         if(debugMode){
             DrawText(TextFormat("%s : %s",gameName.c_str(), gameVersion.c_str()), 10, 10, 20, WHITE);
             DrawText(TextFormat("FPS: %d", GetFPS()), 10, 50, 20, WHITE);
-            DrawText(TextFormat("Delta Time: %.4f ms", GetFrameTime()), 10, 70, 20, WHITE);
+            DrawText(TextFormat("Delta Time: %.2f ms", GetFrameTime() * 1000), 10, 70, 20, WHITE);
             DrawText(TextFormat("X, Y Pos: %.0f, %.0f", player.GetRect().x / tileSize, player.GetRect().y / tileSize), 10, 110, 20, WHITE);
             
         }

@@ -11,7 +11,9 @@ ItemDrop::ItemDrop(Item* item, float x, float y, int velX, int velY)
 }
 
 ItemDrop::~ItemDrop() {
-    
+    if (itemData != nullptr) {
+        delete itemData;
+    }
 }
 
 void ItemDrop::Update(World& world, int tileSize, float dt) {
@@ -20,7 +22,7 @@ void ItemDrop::Update(World& world, int tileSize, float dt) {
     ApplyPhysics(world, tileSize, dt);
 }
 
-void ItemDrop::Draw() {
+void ItemDrop::Draw() { 
     if (!itemData) return;
 
    

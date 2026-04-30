@@ -18,6 +18,10 @@ public:
 
     virtual ~Item() = default;
 
+    virtual Item* Clone() const { 
+        return new Item(*this);
+    }
+
     virtual void OnUse(World& world, int x, int y) {}
 };
 

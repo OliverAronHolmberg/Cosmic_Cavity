@@ -15,7 +15,7 @@ private:
 public:
     Player(int winW, int winH);
 
-    void Update(World& world, int tileSize);
+    void Update(World& world, int tileSize, float dt);
     void Draw();
     void DrawHighlights(int tileSize);
 
