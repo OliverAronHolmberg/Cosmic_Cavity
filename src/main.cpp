@@ -35,12 +35,13 @@ int main(){
     const int winH = 720;
     bool debugMode = true;
     std::string gameName = "Cosmic Cavity";
-    std::string gameVersion = "Beta 1";
+    std::string gameVersion = "Prototype 1";
     
     int FPS = 60;
 
     
     InitWindow(winW, winH, gameName.c_str());
+    SetExitKey(0);
     SetTargetFPS(FPS);
     LoadTextures();
     

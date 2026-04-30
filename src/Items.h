@@ -18,9 +18,7 @@ public:
 
     virtual ~Item() = default;
 
-    virtual Item* Clone() const { 
-        return new Item(*this);
-    }
+    virtual Item* Clone() const = 0;
 
     virtual void OnUse(World& world, int x, int y) {}
 };
@@ -33,6 +31,10 @@ public:
     BlockItem(std::string Name, TileDef tileData, int amount = 1)
         : Item(Name, tileData.textureID, amount, 999, true), blueprint(tileData) {}
 
+    Item* Clone() const override { 
+        return new BlockItem(*this); 
+    }
+
     void OnUse(World& world, int x, int y) override;
 };
 
@@ -42,6 +44,10 @@ class ExplosiveBlock : public BlockItem{
 
     ExplosiveBlock(std::string Name, TileDef tileData, int amount = 1, float radius = 150.0f)
     : BlockItem(Name, tileData, amount), blastRadius(radius) {}
+
+    Item* Clone() const override { 
+        return new ExplosiveBlock(*this); 
+    }
 
     void OnUse(World& world, int x, int y, int tileSize);
 };
