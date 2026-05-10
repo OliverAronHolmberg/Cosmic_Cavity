@@ -413,33 +413,20 @@ void Inventory::DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH) {
         smeltRecipe = rm.FindFurnaceRecipe(inputItem->name);
     }
 
-    if (smeltRecipe && hasFuel && !outputItem && !mouseItem) {
-        Rectangle smeltBtn = { menuX + 140, menuY + 80, 80, 30 };
-        DrawRectangleRec(smeltBtn, ColorAlpha(ORANGE, 0.8f));
-        DrawText("Smelt", smeltBtn.x + 20, smeltBtn.y + 8, 16, WHITE);
-        
-        if (CheckCollisionPointRec(GetMousePosition(), smeltBtn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            if (inputItem->count >= 1) {
-                inputItem->count--;
-                if (inputItem->count <= 0) {
-                    delete inputItem;
-                    furnaceslots[1].SetHeldItemRaw(nullptr);
-                }
-                
-                fuelItem->count--;
-                if (fuelItem->count <= 0) {
-                    delete fuelItem;
-                    furnaceslots[0].SetHeldItemRaw(nullptr);
-                }
-                
-                Item* result = new Item(smeltRecipe->resultID, smeltRecipe->resultTexture, smeltRecipe->resultAmount, 999);
-                furnaceslots[2].SetItem(result);
-            }
-        }
+    Rectangle toggleBtn = { menuX + 140, menuY + 80, 80, 30 };
+    Color btnColor = furnaceActive ? ColorAlpha(GREEN, 0.8f) : ColorAlpha(GRAY, 0.8f);
+    DrawRectangleRec(toggleBtn, btnColor);
+    DrawText(furnaceActive ? "On" : "Off", toggleBtn.x + 30, toggleBtn.y + 8, 16, WHITE);
+    
+    if (CheckCollisionPointRec(GetMousePosition(), toggleBtn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        furnaceActive = !furnaceActive;
+        if (furnaceActive) furnaceTimer = 0;
     }
-
-    if (burnTime > 0 && smeltRecipe) {
-        DrawText(TextFormat("Burn: %d", burnTime), menuX, menuY + 120, 14, ORANGE);
+    
+    if (furnaceActive && furnaceTimer > 0) {
+        DrawText(TextFormat("Smelting: %.1f", furnaceTimer), menuX, menuY + 120, 14, ORANGE);
+    } else if (furnaceActive && furnaceTimer <= 0) {
+        DrawText("Smelting...", menuX, menuY + 120, 14, ORANGE);
     }
     
     for (int i = 0; i < (int)furnaceslots.size(); i++) {
@@ -505,6 +492,84 @@ void Inventory::DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH) {
     if (mouseItem && mouseItem->count <= 0) {
         delete mouseItem;
         mouseItem = nullptr;
+    }
+}
+
+void Inventory::UpdateFurnace(RecipeManager& rm, float deltaTime) {
+    Item* fuelItem = furnaceslots[0].getHeldItem();
+    Item* inputItem = furnaceslots[1].getHeldItem();
+    Item* outputItem = furnaceslots[2].getHeldItem();
+    
+    if (!furnaceActive) return;
+    
+    if (!inputItem || !fuelItem) {
+        furnaceActive = false;
+        furnaceTimer = 0;
+        return;
+    }
+    
+    FurnaceRecipe* smeltRecipe = rm.FindFurnaceRecipe(inputItem->name);
+    bool hasFuel = rm.IsFuelItem(fuelItem->name);
+    
+    if (!smeltRecipe || !hasFuel) {
+        furnaceActive = false;
+        furnaceTimer = 0;
+        return;
+    }
+    
+    if (outputItem && outputItem->name != smeltRecipe->resultID) {
+        return;
+    }
+    
+    if (outputItem && outputItem->count >= outputItem->max) {
+        return;
+    }
+    
+    if (furnaceTimer <= 0) {
+        furnaceBurnTime = rm.GetFuelBurnTimeItem(fuelItem->name);
+        furnaceTimer = (float)furnaceBurnTime / 60.0f;
+    }
+    
+    furnaceTimer -= deltaTime;
+    
+    if (furnaceTimer <= 0) {
+        inputItem->count--;
+        if (inputItem->count <= 0) {
+            delete inputItem;
+            furnaceslots[1].SetHeldItemRaw(nullptr);
+        }
+        
+        fuelItem->count--;
+        if (fuelItem->count <= 0) {
+            delete fuelItem;
+            furnaceslots[0].SetHeldItemRaw(nullptr);
+        }
+        
+        if (outputItem && outputItem->name == smeltRecipe->resultID) {
+            outputItem->count += smeltRecipe->resultAmount;
+        } else {
+            Item* result = new Item(smeltRecipe->resultID, smeltRecipe->resultTexture, smeltRecipe->resultAmount, 999);
+            furnaceslots[2].SetItem(result);
+        }
+        
+        Item* newFuelItem = furnaceslots[0].getHeldItem();
+        Item* newInputItem = furnaceslots[1].getHeldItem();
+        Item* newOutputItem = furnaceslots[2].getHeldItem();
+        
+        bool canContinue = newInputItem && newFuelItem && rm.IsFuelItem(newFuelItem->name);
+        if (canContinue) {
+            FurnaceRecipe* nextRecipe = rm.FindFurnaceRecipe(newInputItem->name);
+            if (!nextRecipe) canContinue = false;
+        }
+        
+        if (newOutputItem && newOutputItem->count >= newOutputItem->max) {
+            canContinue = false;
+        }
+        
+        if (!canContinue) {
+            furnaceActive = false;
+            furnaceTimer = 0;
+        }
     }
 }
 

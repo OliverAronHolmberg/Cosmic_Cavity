@@ -87,7 +87,6 @@ int main(){
     player.getInventory().AddItem(new Item("STONE", "STONE", 999, 999));
     player.getInventory().AddItem(new Item("IRON", "IRON", 999, 999));
     player.getInventory().AddItem(new Item("COAL", "COAL", 999, 999));
-    player.getInventory().AddItem(new Item("WOOD", "WOOD", 999, 999));
     player.getInventory().AddItem(new Item("STEEL", "STEEL", 999, 999));
     player.getInventory().AddItem(new Item("COAL", "COAL", 999, 999));
     player.getInventory().AddItem(new Item("FUSIONCORE", "FUSIONCORE", 999, 999));
@@ -106,6 +105,7 @@ int main(){
         float dt = GetFrameTime();
         
         player.Update(gameWorld, tileSize, dt, debugMode);
+        player.getInventory().UpdateFurnace(recipeManager, dt);
 
         
 

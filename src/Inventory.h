@@ -70,6 +70,9 @@ public:
     bool isOpened = false;
     bool craftingMenu = false;
     bool furnaceOpen = false;
+    bool furnaceActive = false;
+    int furnaceBurnTime = 0;
+    float furnaceTimer = 0.0f;
 
     Inventory(int X, int Y, int W, int H);
     ~Inventory();
@@ -82,12 +85,6 @@ public:
         }
         if (!isOpened) {
             for (auto& slot : craftingslots) {
-                if (slot.getOccupied()) {
-                    AddItem(slot.getHeldItem());
-                    slot.SetHeldItemRaw(nullptr);
-                }
-            }
-            for (auto& slot : furnaceslots) {
                 if (slot.getOccupied()) {
                     AddItem(slot.getHeldItem());
                     slot.SetHeldItemRaw(nullptr);
@@ -113,6 +110,7 @@ public:
     void RemoveItems(std::string itemName, int amount);
     void DrawCraftingMenu(RecipeManager& rm, int screenW, int screenH);
     void DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH);
+    void UpdateFurnace(RecipeManager& rm, float deltaTime);
     void ClearCraftingGrid() {
         for (auto& slot : craftingslots) {
             if (slot.getOccupied()) {
