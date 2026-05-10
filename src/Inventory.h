@@ -127,13 +127,13 @@ RecipeManager() {
         recipes.push_back(stoneWallRecipe);
 
         Recipe cobbleStoneWallRecipe = {"COBBLESTONEWALL", "COBBLESTONEWALL", 1, {}, true, TileShape::WALL};
-        stoneWallRecipe.grid[0] = "COBBLESTONE"; stoneWallRecipe.grid[1] = "COBBLESTONE"; stoneWallRecipe.grid[2] = "";
-        stoneWallRecipe.grid[3] = ""; stoneWallRecipe.grid[4] = ""; stoneWallRecipe.grid[5] = "";
-        stoneWallRecipe.grid[6] = ""; stoneWallRecipe.grid[7] = ""; stoneWallRecipe.grid[8] = "";
+        cobbleStoneWallRecipe.grid[0] = "COBBLESTONE"; cobbleStoneWallRecipe.grid[1] = "COBBLESTONE"; cobbleStoneWallRecipe.grid[2] = "";
+        cobbleStoneWallRecipe.grid[3] = ""; cobbleStoneWallRecipe.grid[4] = ""; cobbleStoneWallRecipe.grid[5] = "";
+        cobbleStoneWallRecipe.grid[6] = ""; cobbleStoneWallRecipe.grid[7] = ""; cobbleStoneWallRecipe.grid[8] = "";
         recipes.push_back(cobbleStoneWallRecipe);
         
         Recipe workbenchRecipe = {"CRAFTER", "CRAFTER", 1, {}, true, TileShape::FULL_BLOCK};
-        workbenchRecipe.grid[0] = "STEELBLOCK"; workbenchRecipe.grid[1] = "INFORMATIONBOX"; workbenchRecipe.grid[2] = "STEELBLOCK";
+        workbenchRecipe.grid[0] = "STEELBLOCK"; workbenchRecipe.grid[1] = "DATABOX"; workbenchRecipe.grid[2] = "STEELBLOCK";
         workbenchRecipe.grid[3] = "STEELBLOCK"; workbenchRecipe.grid[4] = "STEELBLOCK"; workbenchRecipe.grid[5] = "STEELBLOCK";
         workbenchRecipe.grid[6] = ""; workbenchRecipe.grid[7] = ""; workbenchRecipe.grid[8] = "";
         recipes.push_back(workbenchRecipe);
