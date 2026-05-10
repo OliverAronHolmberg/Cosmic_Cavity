@@ -110,6 +110,8 @@ int main(){
         player.getInventory().DrawInventory(winW, winH);
         player.getInventory().DrawCraftingMenu(recipeManager, winW, winH);
         player.getInventory().DrawMouseItem();
+
+        
         if(debugMode){
             DrawText(TextFormat("%s : %s",gameName.c_str(), gameVersion.c_str()), 10, 10, 20, WHITE);
             DrawText(TextFormat("FPS: %d", GetFPS()), 10, 50, 20, WHITE);

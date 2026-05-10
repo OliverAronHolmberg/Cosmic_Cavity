@@ -45,20 +45,25 @@ Inventory::Inventory(int X, int Y, int W, int H) : x(X), y(Y), w(W), h(H) {
     selectedSlot = 0;
     int slotSize = 75;
 
+    int totalWidth = cols * slotSize;
+    int centeredX = (GetScreenWidth() - totalWidth) / 2;
+
+
+
     for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
-            slots.emplace_back(X + (c * slotSize), Y - (r * slotSize), slotSize, slotSize);
+            slots.emplace_back(centeredX + (c * slotSize), Y - (r * slotSize), slotSize, slotSize);
         }
     }
 
-    int craftX = X + 350;
-    int craftY = Y + 100;
+    int craftX = centeredX;
+    int craftY = Y - 450;
     for (int r = 0; r < 3; r++) {
         for (int c = 0; c < 3; c++) {
             craftingslots.emplace_back(craftX + (c * 60), craftY + (r * 60), 50, 50);
         }
     }
-    craftingslots.emplace_back(craftX + 220, craftY + 60, 60, 60);
+    craftingslots.emplace_back(craftX + 200, craftY + 60, 60, 60);
 }
 
 Inventory::~Inventory() {
@@ -171,7 +176,10 @@ bool Inventory::AddItem(Item* newItem) {
 void Inventory::DrawInventory(int screenW, int screenH) {
     if (isOpened) {
         DrawRectangle(0, 0, screenW, screenH, ColorAlpha(DARKGRAY, 0.75f));
-        for (auto& slot : slots) slot.DrawSlot();
+
+        for (auto& slot : slots) {
+            slot.DrawSlot();
+        }
 
     } else {
         for (int i = 0; i < cols; i++) slots[i].DrawSlot();
@@ -183,13 +191,23 @@ void Inventory::DrawInventory(int screenW, int screenH) {
 void Inventory::DrawCraftingMenu(RecipeManager& rm, int screenW, int screenH) {
     if (!isOpened || !craftingMenu) return;
 
-    int menuX = screenW - 400;
-    int menuY = 150;
+    int totalInvWidth = 9 * 75; 
+    int inventoryLeftEdge = (screenW - totalInvWidth) / 2;
+    
+    int menuX = inventoryLeftEdge + 20;
+
+
+    int inventoryTopEdge = screenH - (5 * 75);
+    int rectY = inventoryTopEdge - 250 -10;
+
+
+    int menuY = rectY + 40;
     int slotSize = 50;
     int resultSlotX = menuX + 220;
     int resultSlotY = menuY + slotSize;
     
-    DrawRectangle(menuX - 20, menuY - 40, 350, 250, ColorAlpha(DARKGRAY, 0.9f));
+   
+    DrawRectangle(inventoryLeftEdge, rectY, 350, 250, ColorAlpha(DARKGRAY, 0.9f));
     DrawText("Crafting", menuX, menuY - 30, 24, WHITE);
 
     for (int r = 0; r < 3; r++) {

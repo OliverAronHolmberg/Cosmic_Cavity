@@ -5,7 +5,7 @@
 
 Player::Player(int winW, int winH)
     : Entity(100.0f, 100.0f, 75.0f, 175.0f, 8.0f), 
-      inventory((winW - 540) / 2, winH - 85, 540, 75) 
+      inventory((winW - 540) / 2, winH-85, 540, 75) 
 {
     camera = { 0 };
     camera.offset = { winW / 2.0f, winH / 2.0f };
@@ -59,7 +59,7 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
         if (currentItem && currentItem->count > 0) {
             int throwVelX = 0;
             if (mouseWorldPos.x > rect.x) throwVelX = 20;
-            else if (mouseWorldPos.x < rect.x) throwVelX = -20;
+            else if (mouseWorldPos.x < rect.x) throwVelX = -0;
             
             int throwVelY = 0;
             if (mouseWorldPos.y < rect.y) throwVelY = -10;
