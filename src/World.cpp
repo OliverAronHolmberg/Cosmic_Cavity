@@ -188,7 +188,7 @@ void World::UpdateItems(Player& player, float dt, int tileSize) {
             it = droppedItems.erase(it);
             continue; 
         }
-        if (CheckCollisionRecs(player.GetRect(), item->GetRect())) {
+        if (CheckCollisionRecs(player.GetRect(), item->GetRect()) && item->age > 0.5f) {
             if (player.getInventory().AddItem(item->itemData)) {
                 item->itemData = nullptr;
                 delete item;
@@ -209,10 +209,13 @@ void World::DrawItems() {
     }
 }
 
-void World::SpawnPhysicalDrop(Item* data, float x, float y, int velX, int velY) {
+void World::SpawnPhysicalDrop(Item* data, float x, float y, int velX, int velY, int count) {
     if (!data) return;
     
-
+    if (count > 0 && count < data->count) {
+        data->count = count;
+    }
+    
     ItemDrop* newDrop = new ItemDrop(data, x, y, velX, velY);
     droppedItems.push_back(newDrop);
 }

@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "TextureHandler.h"
 #include <cmath>
+#include <raylib.h>
 
 Player::Player(int winW, int winH)
     : Entity(100.0f, 100.0f, 75.0f, 175.0f, 8.0f), 
@@ -23,6 +24,10 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
 
     if (IsKeyPressed(KEY_TAB) && !inventory.craftingMenu) inventory.ToggleInventory();
 
+    if(IsKeyPressed(KEY_F10)) isFlying = !isFlying;
+
+    
+
     if(inventory.isOpened){
         inventory.UpdateMouseLogic(&inventory);
     }
@@ -35,8 +40,8 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
 
     velocity.x = 0; 
     if (!inventory.isOpened) {
-        if (IsKeyDown(KEY_D)) velocity.x = movementSpeed*dt*60;
-        if (IsKeyDown(KEY_A)) velocity.x = -movementSpeed*dt*60;
+        if (IsKeyDown(KEY_D)) velocity.x = movementSpeed;
+        if (IsKeyDown(KEY_A)) velocity.x = -movementSpeed;
         
         if (isGrounded && IsKeyDown(KEY_SPACE)) {
             velocity.y = -jumpHeight;
@@ -44,11 +49,30 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
 
         if (isFlying) {
             velocity.y = 0;
-            if (IsKeyDown(KEY_W)) velocity.y = -movementSpeed*dt*60;
-            if (IsKeyDown(KEY_S)) velocity.y = movementSpeed*dt*60;
+            if (IsKeyDown(KEY_W)) velocity.y = -movementSpeed;
+            if (IsKeyDown(KEY_S)) velocity.y = movementSpeed;
         }
     }
 
+    if (IsKeyPressed(KEY_Q)) {
+        Item* currentItem = inventory.getCurrentSelectedItem();
+        if (currentItem && currentItem->count > 0) {
+            int throwVelX = 0;
+            if (mouseWorldPos.x > rect.x) throwVelX = 20;
+            else if (mouseWorldPos.x < rect.x) throwVelX = -20;
+            
+            int throwVelY = 0;
+            if (mouseWorldPos.y < rect.y) throwVelY = -10;
+            else if (mouseWorldPos.y > rect.y) throwVelY = 10;
+            
+            world.SpawnPhysicalDrop(currentItem->Clone(), 
+            rect.x + rect.width/2, 
+            rect.y, 
+            throwVelX, 
+            throwVelY, 1);
+            inventory.RemoveItems(currentItem->name, 1);
+        }
+    }
 
     ApplyPhysics(world, tileSize, dt);
 
@@ -127,6 +151,9 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
             }
         }
     }
+    
+   
+        
 }
 
 void Player::Draw() {

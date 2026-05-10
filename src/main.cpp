@@ -94,7 +94,6 @@ int main(){
         gameWorld.Draw(player.getCamera(), winW, winH, tileSize);
 
         player.DrawHighlights(tileSize);
-        player.SetFlying(debugMode);
         gameWorld.DrawItems();
         gameWorld.UpdateItems(player, dt, tileSize);
         

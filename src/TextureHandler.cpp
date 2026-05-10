@@ -40,6 +40,7 @@ void TextureHandler::UnloadAll(){
 }
 
 void DrawTextureScaled(Texture2D texture, Rectangle destRec){
+    if (texture.id == 0 || texture.width == 0 || texture.height == 0) return;
     Rectangle sourceRec = { 0.0f, 0.0f, (float)texture.width, (float)texture.height};
     DrawTexturePro(texture, sourceRec, destRec, {0,0}, 0.0f, WHITE);
 }

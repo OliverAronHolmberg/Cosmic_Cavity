@@ -256,8 +256,9 @@ void Inventory::DrawCraftingMenu(RecipeManager& rm, int screenW, int screenH) {
     Item* recipeResult = rm.CheckGridRecipe(craftingslots);
     
     Rectangle resultRec = { (float)resultSlotX, (float)resultSlotY, 60, 60 };
+    DrawRectangleRec(resultRec, ColorAlpha(LIGHTGRAY, 0.5f));
+    
     if (recipeResult) {
-        DrawRectangleRec(resultRec, ColorAlpha(GOLD, 0.3f));
         DrawRectangleLinesEx(resultRec, 3, GOLD);
         
         DrawTextureScaled(textureAssets.Get(recipeResult->textureID), { resultRec.x + 5, resultRec.y + 5, resultRec.width - 10, resultRec.height - 10 });
@@ -265,27 +266,36 @@ void Inventory::DrawCraftingMenu(RecipeManager& rm, int screenW, int screenH) {
             DrawText(TextFormat("%d", recipeResult->count), resultRec.x + 5, resultRec.y + 5, 16, WHITE);
         }
         
-if (CheckCollisionPointRec(GetMousePosition(), resultRec)) {
+        if (CheckCollisionPointRec(GetMousePosition(), resultRec)) {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                AddItem(recipeResult);
-                recipeResult = nullptr;
-                
-                for (int i = 0; i < 9; i++) {
-                    InventorySlot& slot = craftingslots[i];
-                    if (slot.getOccupied() && slot.getHeldItem()) {
-                        slot.getHeldItem()->count--;
-                        slot.UpdateSlotState();
-                    }
+                int craftCount = 1;
+                if (IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT)) {
+                    craftCount = 999;
                 }
+                for (int c = 0; c < craftCount; c++) {
+                    AddItem(recipeResult->Clone());
+                    for (int i = 0; i < 9; i++) {
+                        InventorySlot& slot = craftingslots[i];
+                        if (slot.getOccupied() && slot.getHeldItem()) {
+                            slot.getHeldItem()->count--;
+                            slot.UpdateSlotState();
+                        }
+                    }
+                    recipeResult = rm.CheckGridRecipe(craftingslots);
+                    if (!recipeResult) break;
+                }
+                delete recipeResult;
+                recipeResult = nullptr;
             }
             
-            if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+            else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
                 if (!mouseItem) {
-                    mouseItem = recipeResult;
-                    recipeResult = nullptr;
+                    mouseItem = recipeResult->Clone();
                 }
             }
         }
+    } else {
+        DrawRectangleLinesEx(resultRec, 2, DARKGRAY);
     }
     
     if (recipeResult) delete recipeResult;

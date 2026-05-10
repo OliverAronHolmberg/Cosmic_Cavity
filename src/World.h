@@ -5,10 +5,8 @@
 #include <map>
 #include "Tiles.h"
 
-// --- NEW: Forward Declarations to stop the loops ---
 class ItemDrop; 
 class Player;
-// --------------------------------------------------
 
 const int CHUNK_SIZE = 16;
 
@@ -34,7 +32,7 @@ public:
     void AddTile(TileDef def, int x, int y, int tileSize);
     void RemoveTileAt(int worldX, int worldY, int tileSize);
 
-    void SpawnPhysicalDrop(Item* data, float x, float y, int velX, int velY);
+    void SpawnPhysicalDrop(Item* data, float x, float y, int velX, int velY, int count = 1);
     void AddDroppedItem(ItemDrop* item);
     void UpdateItems(Player& player, float dt, int tileSize);
     void DrawItems();
