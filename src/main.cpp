@@ -32,6 +32,8 @@ void LoadTextures(){
     textureAssets.Load("STEELBLOCK", "resources/SteelBlock.png");
     textureAssets.Load("DATABOX", "resources/DataBox.png");
     textureAssets.Load("COBBLESTONEWALL", "resources/CobbleStoneWall.png");
+    textureAssets.Load("COAL", "resources/Coal.png");
+    textureAssets.Load("IRON", "resources/Iron.png");
 }
 
 
@@ -68,19 +70,30 @@ int main(){
     
     
     Player player(winW, winH);
-    TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 1, false, TileShape::FULL_BLOCK};
+    TileDef crafterDef = {"CRAFTER","CRAFTER", "CRAFTER", 1, false, TileShape::FULL_BLOCK, false, 0.0f, CraftingType::CRAFTING_TABLE};
+
+    TileDef furnaceDef = {"FURNACE","FURNACE", "FURNACE", 1, false, TileShape::FULL_BLOCK, false, 0.0f, CraftingType::FURNACE};
+
+    TileDef ironOre = {"IRONORE","IRONORE", "IRONORE", 1, false, TileShape::FULL_BLOCK};
 
     TileDef explosiveDef = {"TNT","TNT", "TNT", 1, true, TileShape::FULL_BLOCK, true, 800.0f};
     
-    TileDef fusionReactor = {"FUSIONREACTOR","FUSIONREACTOR", "FUSIONREACTOR", 1, true, TileShape::FULL_BLOCK};
+    TileDef fusionReactor = {"FUSIONREACTOR","FUSIONREACTOR", "FUSIONREACTOR", 1, true, TileShape::FULL_BLOCK, false, 0.0f, CraftingType::CRAFTING_TABLE};
 
     TileDef core = {"FUSIONCORE","FUSIONCORE", "FUSIONCORE", 1, true, TileShape::FULL_BLOCK};
 
     player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 1));
+    player.getInventory().AddItem(new BlockItem("FURNACE", furnaceDef, 1));
+    player.getInventory().AddItem(new Item("STONE", "STONE", 999, 999));
+    player.getInventory().AddItem(new Item("IRON", "IRON", 999, 999));
+    player.getInventory().AddItem(new Item("COAL", "COAL", 999, 999));
+    player.getInventory().AddItem(new Item("WOOD", "WOOD", 999, 999));
     player.getInventory().AddItem(new Item("STEEL", "STEEL", 999, 999));
+    player.getInventory().AddItem(new Item("COAL", "COAL", 999, 999));
     player.getInventory().AddItem(new Item("FUSIONCORE", "FUSIONCORE", 999, 999));
     player.getInventory().AddItem(new Item("DATABOX", "DATABOX", 999, 999));
     player.getInventory().AddItem(new BlockItem("FUSIONREACTOR", fusionReactor, 1));
+    player.getInventory().AddItem(new BlockItem("IRONORE", ironOre, 999));
     player.getInventory().AddItem(new ExplosiveBlock("TNT", explosiveDef, 999));
     
 
@@ -122,6 +135,7 @@ int main(){
         
         player.getInventory().DrawInventory(winW, winH);
         player.getInventory().DrawCraftingMenu(recipeManager, winW, winH);
+        player.getInventory().DrawFurnaceMenu(recipeManager, winW, winH);
         player.getInventory().DrawMouseItem();
 
 

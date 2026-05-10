@@ -60,6 +60,7 @@ class Inventory : public Container {
 private:
     std::vector<InventorySlot> slots;
     std::vector<InventorySlot> craftingslots;
+    std::vector<InventorySlot> furnaceslots;
     int rows, cols;
     int x, y, w, h;
     int selectedSlot;
@@ -68,15 +69,25 @@ private:
 public:
     bool isOpened = false;
     bool craftingMenu = false;
+    bool furnaceOpen = false;
 
     Inventory(int X, int Y, int W, int H);
     ~Inventory();
 
     void ToggleInventory() { 
         isOpened = !isOpened; 
-        if (isOpened) craftingMenu = false;
+        if (isOpened) {
+            craftingMenu = false;
+            furnaceOpen = false;
+        }
         if (!isOpened) {
             for (auto& slot : craftingslots) {
+                if (slot.getOccupied()) {
+                    AddItem(slot.getHeldItem());
+                    slot.SetHeldItemRaw(nullptr);
+                }
+            }
+            for (auto& slot : furnaceslots) {
                 if (slot.getOccupied()) {
                     AddItem(slot.getHeldItem());
                     slot.SetHeldItemRaw(nullptr);
@@ -101,6 +112,7 @@ public:
     bool HasAmount(std::string itemName, int amount);
     void RemoveItems(std::string itemName, int amount);
     void DrawCraftingMenu(RecipeManager& rm, int screenW, int screenH);
+    void DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH);
     void ClearCraftingGrid() {
         for (auto& slot : craftingslots) {
             if (slot.getOccupied()) {
@@ -132,7 +144,7 @@ RecipeManager() {
         cobbleStoneWallRecipe.grid[6] = ""; cobbleStoneWallRecipe.grid[7] = ""; cobbleStoneWallRecipe.grid[8] = "";
         recipes.push_back(cobbleStoneWallRecipe);
         
-        Recipe workbenchRecipe = {"CRAFTER", "CRAFTER", 1, {}, true, TileShape::FULL_BLOCK};
+        Recipe workbenchRecipe = {"CRAFTER", "CRAFTER", 1, {}, true, TileShape::WALL};
         workbenchRecipe.grid[0] = "STEELBLOCK"; workbenchRecipe.grid[1] = "DATABOX"; workbenchRecipe.grid[2] = "STEELBLOCK";
         workbenchRecipe.grid[3] = "STEELBLOCK"; workbenchRecipe.grid[4] = "STEELBLOCK"; workbenchRecipe.grid[5] = "STEELBLOCK";
         workbenchRecipe.grid[6] = ""; workbenchRecipe.grid[7] = ""; workbenchRecipe.grid[8] = "";
@@ -163,8 +175,33 @@ RecipeManager() {
         furnace.grid[6] = "STEELBLOCK"; furnace.grid[7] = "STEELBLOCK"; furnace.grid[8] = "STEELBLOCK";
         recipes.push_back(furnace);
 
-        
+        FurnaceRecipe stoneSmelt = {"STONE", "STEELBLOCK", "STEEL", 1, 10};
+        furnaceRecipes.push_back(stoneSmelt);
 
+        FurnaceRecipe ironOreSmelt = {"IRONORE", "IRON", "IRON", 1, 20};
+        furnaceRecipes.push_back(ironOreSmelt);
+
+        fuelItems.push_back({"STONE", 5});
+        fuelItems.push_back({"COAL", 10});
+        fuelItems.push_back({"WOOD", 3});
+
+    }
+
+    std::vector<FurnaceRecipe> furnaceRecipes;
+    std::vector<std::pair<std::string, int>> fuelItems;
+
+    bool IsFuel(const std::string& itemID) {
+        for (auto& fuel : fuelItems) {
+            if (fuel.first == itemID) return true;
+        }
+        return false;
+    }
+
+    int GetFuelBurnTime(const std::string& itemID) {
+        for (auto& fuel : fuelItems) {
+            if (fuel.first == itemID) return fuel.second;
+        }
+        return 0;
     }
 
    
@@ -177,7 +214,28 @@ RecipeManager() {
         return true;
     }
     
-    
+    FurnaceRecipe* FindFurnaceRecipe(const std::string& inputID) {
+        for (auto& recipe : furnaceRecipes) {
+            if (recipe.inputID == inputID) {
+                return &recipe;
+            }
+        }
+        return nullptr;
+    }
+
+    bool IsFuelItem(const std::string& fuelID) {
+        for (auto& fuel : fuelItems) {
+            if (fuel.first == fuelID) return true;
+        }
+        return false;
+    }
+
+    int GetFuelBurnTimeItem(const std::string& fuelID) {
+        for (auto& fuel : fuelItems) {
+            if (fuel.first == fuelID) return fuel.second;
+        }
+        return 0;
+    }
 
     Item* CheckGridRecipe(std::vector<InventorySlot>& allSlots) {
         bool hasItems = false;

@@ -18,6 +18,12 @@ enum class TileShape {
     WALL
 };
 
+enum class CraftingType {
+    NONE,
+    CRAFTING_TABLE,
+    FURNACE
+};
+
 struct TileDef {
     std::string name;
     std::string textureID;
@@ -26,7 +32,8 @@ struct TileDef {
     bool hasCollision = true;
     TileShape shape = TileShape::FULL_BLOCK;
     bool isExplosive = false;
-    float explosionRadius =  0.0f;
+    float explosionRadius = 0.0f;
+    CraftingType craftingType = CraftingType::NONE;
 };
 
 class Tile {

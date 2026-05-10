@@ -64,6 +64,12 @@ Inventory::Inventory(int X, int Y, int W, int H) : x(X), y(Y), w(W), h(H) {
         }
     }
     craftingslots.emplace_back(craftX + 200, craftY + 60, 60, 60);
+    
+    int furnaceX = centeredX;
+    int furnaceY = Y - 450;
+    furnaceslots.emplace_back(furnaceX, furnaceY, 50, 50);
+    furnaceslots.emplace_back(furnaceX + 60, furnaceY, 50, 50);
+    furnaceslots.emplace_back(furnaceX + 140, furnaceY + 25, 60, 60);
 }
 
 Inventory::~Inventory() {
@@ -354,6 +360,157 @@ void Inventory::RemoveItems(std::string itemName, int amount) {
                 slot.UpdateSlotState(); 
             }
         }
+    }
+}
+
+void Inventory::DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH) {
+    if (!isOpened || !furnaceOpen) return;
+    
+    int totalInvWidth = 9 * 75; 
+    int inventoryLeftEdge = (screenW - totalInvWidth) / 2;
+    
+    int menuX = inventoryLeftEdge + 20;
+
+
+    int inventoryTopEdge = screenH - (5 * 75);
+    int rectY = inventoryTopEdge - 250 - 10;
+
+
+    int menuY = rectY + 80;
+    int slotSize = 50;
+    int resultSlotX = menuX + 220;
+    int resultSlotY = menuY + slotSize;
+    
+   
+    
+    DrawRectangle(menuX - 20, menuY, 250, 180, ColorAlpha(DARKGRAY, 0.9f));
+    DrawText("Furnace", menuX, menuY - 30, 24, WHITE);
+    
+    DrawText("Fuel", menuX, menuY, 16, LIGHTGRAY);
+    DrawText("Input", menuX + 60, menuY, 16, LIGHTGRAY);
+    DrawText("Output", menuX + 130, menuY + 10, 16, LIGHTGRAY);
+
+    Item* fuelItem = furnaceslots[0].getHeldItem();
+    Item* inputItem = furnaceslots[1].getHeldItem();
+    Item* outputItem = furnaceslots[2].getHeldItem();
+
+    FurnaceRecipe* smeltRecipe = nullptr;
+    bool hasFuel = false;
+    int burnTime = 0;
+
+    if (fuelItem) {
+        hasFuel = rm.IsFuelItem(fuelItem->name);
+        if (hasFuel) {
+            burnTime = rm.GetFuelBurnTimeItem(fuelItem->name);
+        }
+    }
+
+    if (inputItem) {
+        smeltRecipe = rm.FindFurnaceRecipe(inputItem->name);
+    }
+
+    if (smeltRecipe && hasFuel && !outputItem) {
+        Rectangle smeltBtn = { menuX + 140, menuY + 80, 80, 30 };
+        DrawRectangleRec(smeltBtn, ColorAlpha(ORANGE, 0.8f));
+        DrawText("Smelt", smeltBtn.x + 20, smeltBtn.y + 8, 16, WHITE);
+        
+        if (CheckCollisionPointRec(GetMousePosition(), smeltBtn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (inputItem->count >= 1) {
+                inputItem->count--;
+                if (inputItem->count <= 0) {
+                    delete inputItem;
+                    furnaceslots[1].SetHeldItemRaw(nullptr);
+                }
+                
+                fuelItem->count--;
+                if (fuelItem->count <= 0) {
+                    delete fuelItem;
+                    furnaceslots[0].SetHeldItemRaw(nullptr);
+                }
+                
+                Item* result = new Item(smeltRecipe->resultID, smeltRecipe->resultTexture, smeltRecipe->resultAmount, 1);
+                furnaceslots[2].SetItem(result);
+            }
+        }
+    }
+
+    if (outputItem) {
+        Rectangle takeBtn = { menuX + 140, menuY + 80, 80, 30 };
+        DrawRectangleRec(takeBtn, ColorAlpha(GREEN, 0.8f));
+        DrawText("Take", takeBtn.x + 25, takeBtn.y + 8, 16, WHITE);
+        
+        if (CheckCollisionPointRec(GetMousePosition(), takeBtn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (!mouseItem) {
+                mouseItem = outputItem->Clone();
+                outputItem->count--;
+                if (outputItem->count <= 0) {
+                    delete outputItem;
+                    furnaceslots[2].SetHeldItemRaw(nullptr);
+                }
+            }
+        }
+    }
+
+    if (burnTime > 0 && smeltRecipe) {
+        DrawText(TextFormat("Burn: %d", burnTime), menuX, menuY + 120, 14, ORANGE);
+    }
+    
+    for (int i = 0; i < (int)furnaceslots.size(); i++) {
+        InventorySlot& slot = furnaceslots[i];
+        Rectangle slotRec = slot.getRec();
+        
+        DrawRectangleRec(slotRec, ColorAlpha(LIGHTGRAY, 0.5f));
+        DrawRectangleLinesEx(slotRec, 2, DARKGRAY);
+        
+        if (slot.getOccupied() && slot.getHeldItem()) {
+            Item* item = slot.getHeldItem();
+            DrawTextureScaled(textureAssets.Get(item->textureID), { slotRec.x + 5, slotRec.y + 5, slotRec.width - 10, slotRec.height - 10 });
+            if (item->count > 1) {
+                DrawText(TextFormat("%d", item->count), slotRec.x + 5, slotRec.y + 5, 16, WHITE);
+            }
+        }
+        
+        if (CheckCollisionPointRec(GetMousePosition(), slotRec)) {
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                Item* slotItem = slot.getHeldItem();
+                if (mouseItem && slotItem && mouseItem->name == slotItem->name) {
+                    int spaceLeft = slotItem->max - slotItem->count;
+                    int transfer = (mouseItem->count < spaceLeft) ? mouseItem->count : spaceLeft;
+                    slotItem->count += transfer;
+                    mouseItem->count -= transfer;
+                } else {
+                    slot.SwapItem(mouseItem);
+                }
+            }
+            
+            if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+                Item* slotItem = slot.getHeldItem();
+                if (!mouseItem && slotItem) {
+                    int half = slotItem->count / 2;
+                    if (half == 0) half = 1;
+                    mouseItem = slotItem->Clone();
+                    mouseItem->count = half;
+                    slotItem->count -= half;
+                }
+                else if (mouseItem) {
+                    if (!slotItem) {
+                        slot.SetItem(mouseItem->Clone());
+                        slot.getHeldItem()->count = 1;
+                        mouseItem->count--;
+                    }
+                    else if (slotItem->name == mouseItem->name && slotItem->count < slotItem->max) {
+                        slotItem->count++;
+                        mouseItem->count--;
+                    }
+                }
+            }
+        }
+        slot.UpdateSlotState();
+    }
+    
+    if (mouseItem && mouseItem->count <= 0) {
+        delete mouseItem;
+        mouseItem = nullptr;
     }
 }
 

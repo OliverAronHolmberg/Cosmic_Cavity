@@ -18,9 +18,13 @@ Item* Tile::CreateDrop() {
 }
 
 void Tile::OnInteract(Inventory& playerInv, World& world, int tileSize) {
-    if (type.name == "CRAFTER") {
+    if (type.craftingType == CraftingType::CRAFTING_TABLE) {
         playerInv.craftingMenu = !playerInv.craftingMenu;
         playerInv.isOpened = playerInv.craftingMenu;
+    }
+    else if (type.craftingType == CraftingType::FURNACE) {
+        playerInv.furnaceOpen = !playerInv.furnaceOpen;
+        playerInv.isOpened = playerInv.furnaceOpen;
     }
     if (type.isExplosive) {
         float centerX = pos.x + (tileSize / 2.0f);

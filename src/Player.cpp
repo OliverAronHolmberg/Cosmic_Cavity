@@ -142,6 +142,9 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
             inventory.ClearCraftingGrid();
             inventory.craftingMenu = false;
             inventory.isOpened = false;
+        } else if (inventory.furnaceOpen) {
+            inventory.furnaceOpen = false;
+            inventory.isOpened = false;
         } else if (!inventory.isOpened && world.chunks.count(mouseCoords)) {
             for (auto& tile : world.chunks[mouseCoords].tiles) {
                 if (CheckCollisionPointRec(mouseWorldPos, tile.getRec())) {

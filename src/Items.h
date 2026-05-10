@@ -76,3 +76,11 @@ struct Recipe {
     TileShape shape;
     std::string grid[9]; // 3x3 grid pattern, empty string means empty slot
 };
+
+struct FurnaceRecipe {
+    std::string inputID;
+    std::string resultID;
+    std::string resultTexture;
+    int resultAmount;
+    int burnTime;
+};
