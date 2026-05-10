@@ -73,5 +73,6 @@ struct Recipe {
     int resultAmount;
     std::vector<Ingredient> ingredients;
     bool isBlock;
+    TileShape shape;
     std::string grid[9]; // 3x3 grid pattern, empty string means empty slot
 };

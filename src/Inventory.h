@@ -119,26 +119,52 @@ class RecipeManager {
 public:
     std::vector<Recipe> recipes;
 
-    RecipeManager() {
-
-        Recipe stoneWallRecipe = {"STONEWALL", "STONEWALL", 1, {}, true};
-        stoneWallRecipe.grid[0] = "TNT"; stoneWallRecipe.grid[1] = "TNT"; stoneWallRecipe.grid[2] = "";
+RecipeManager() {
+        Recipe stoneWallRecipe = {"STONEWALL", "STONEWALL", 1, {}, true, TileShape::WALL};
+        stoneWallRecipe.grid[0] = "STONE"; stoneWallRecipe.grid[1] = "STONE"; stoneWallRecipe.grid[2] = "";
         stoneWallRecipe.grid[3] = ""; stoneWallRecipe.grid[4] = ""; stoneWallRecipe.grid[5] = "";
         stoneWallRecipe.grid[6] = ""; stoneWallRecipe.grid[7] = ""; stoneWallRecipe.grid[8] = "";
         recipes.push_back(stoneWallRecipe);
 
-        Recipe workbenchRecipe = {"CRAFTER", "CRAFTER", 1, {}, true};
-        workbenchRecipe.grid[0] = "LOG"; workbenchRecipe.grid[1] = "LOG"; workbenchRecipe.grid[2] = "LOG";
-        workbenchRecipe.grid[3] = "LOG"; workbenchRecipe.grid[4] = "LOG"; workbenchRecipe.grid[5] = "LOG";
+        Recipe cobbleStoneWallRecipe = {"COBBLESTONEWALL", "COBBLESTONEWALL", 1, {}, true, TileShape::WALL};
+        stoneWallRecipe.grid[0] = "COBBLESTONE"; stoneWallRecipe.grid[1] = "COBBLESTONE"; stoneWallRecipe.grid[2] = "";
+        stoneWallRecipe.grid[3] = ""; stoneWallRecipe.grid[4] = ""; stoneWallRecipe.grid[5] = "";
+        stoneWallRecipe.grid[6] = ""; stoneWallRecipe.grid[7] = ""; stoneWallRecipe.grid[8] = "";
+        recipes.push_back(cobbleStoneWallRecipe);
+        
+        Recipe workbenchRecipe = {"CRAFTER", "CRAFTER", 1, {}, true, TileShape::FULL_BLOCK};
+        workbenchRecipe.grid[0] = "STEELBLOCK"; workbenchRecipe.grid[1] = "INFORMATIONBOX"; workbenchRecipe.grid[2] = "STEELBLOCK";
+        workbenchRecipe.grid[3] = "STEELBLOCK"; workbenchRecipe.grid[4] = "STEELBLOCK"; workbenchRecipe.grid[5] = "STEELBLOCK";
         workbenchRecipe.grid[6] = ""; workbenchRecipe.grid[7] = ""; workbenchRecipe.grid[8] = "";
         recipes.push_back(workbenchRecipe);
 
+        Recipe steelBlock = {"STEELBLOCK", "STEELBLOCK", 1, {}, true, TileShape::FULL_BLOCK};
+        steelBlock.grid[0] = "STEEL"; steelBlock.grid[1] = "STEEL"; steelBlock.grid[2] = "STEEL";
+        steelBlock.grid[3] = "STEEL"; steelBlock.grid[4] = "STEEL"; steelBlock.grid[5] = "STEEL";
+        steelBlock.grid[6] = "STEEL"; steelBlock.grid[7] = "STEEL"; steelBlock.grid[8] = "STEEL";
+        recipes.push_back(steelBlock);
 
-        Recipe fusionReactor = {"FUSIONREACTOR", "FUSIONREACTOR", 1, {}, true};
+        Recipe steel = {"STEEL", "STEEL", 9, {}, true, TileShape::FULL_BLOCK};
+        steel.grid[0] = "STEELBLOCK"; steel.grid[1] = ""; steel.grid[2] = "";
+        steel.grid[3] = ""; steel.grid[4] = ""; steel.grid[5] = "";
+        steel.grid[6] = ""; steel.grid[7] = ""; steel.grid[8] = "";
+        recipes.push_back(steel);
+
+
+        Recipe fusionReactor = {"FUSIONREACTOR", "FUSIONREACTOR", 1, {}, true, TileShape::FULL_BLOCK};
         fusionReactor.grid[0] = "STEEL"; fusionReactor.grid[1] = "STEEL"; fusionReactor.grid[2] = "STEEL";
         fusionReactor.grid[3] = "STEEL"; fusionReactor.grid[4] = "FUSIONCORE"; fusionReactor.grid[5] = "STEEL";
         fusionReactor.grid[6] = "STEEL"; fusionReactor.grid[7] = "STEEL"; fusionReactor.grid[8] = "STEEL";
         recipes.push_back(fusionReactor);
+
+        Recipe furnace = {"FURNACE", "FURNACE", 1, {}, true, TileShape::FULL_BLOCK};
+        furnace.grid[0] = "STEELBLOCK"; furnace.grid[1] = "STEELBLOCK"; furnace.grid[2] = "STEELBLOCK";
+        furnace.grid[3] = "STEELBLOCK"; furnace.grid[4] = ""; furnace.grid[5] = "STEELBLOCK";
+        furnace.grid[6] = "STEELBLOCK"; furnace.grid[7] = "STEELBLOCK"; furnace.grid[8] = "STEELBLOCK";
+        recipes.push_back(furnace);
+
+        
+
     }
 
    
@@ -154,6 +180,15 @@ public:
     
 
     Item* CheckGridRecipe(std::vector<InventorySlot>& allSlots) {
+        bool hasItems = false;
+        for (int i = 0; i < 9; i++) {
+            if (allSlots[i].getOccupied() && allSlots[i].getHeldItem()) {
+                hasItems = true;
+                break;
+            }
+        }
+        if (!hasItems) return nullptr;
+        
         for (auto& recipe : recipes) {
             bool match = true;
             for (int i = 0; i < 9; i++) {
@@ -170,14 +205,18 @@ public:
             }
             
             if (match) {
-                TileDef def;
-                def.name = recipe.resultID;
-                def.textureID = recipe.resultTexture;
-                def.dropID = recipe.resultID;
-                def.dropAmount = recipe.resultAmount;
-                def.hasCollision = true;
-                def.shape = TileShape::FULL_BLOCK;
-                return new BlockItem(recipe.resultID, def, recipe.resultAmount);
+                if (recipe.isBlock) {
+                    TileDef def;
+                    def.name = recipe.resultID;
+                    def.textureID = recipe.resultTexture;
+                    def.dropID = recipe.resultID;
+                    def.dropAmount = recipe.resultAmount;
+                    def.hasCollision = true;
+                    def.shape = recipe.shape;
+                    return new BlockItem(recipe.resultID, def, recipe.resultAmount);
+                } else {
+                    return new Item(recipe.resultID, recipe.resultTexture, recipe.resultAmount, 999, false);
+                }
             }
         }
         return nullptr;

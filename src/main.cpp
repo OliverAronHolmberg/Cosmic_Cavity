@@ -29,7 +29,8 @@ void LoadTextures(){
     textureAssets.Load("FURNACE", "resources/Furnace.png");
     textureAssets.Load("STEEL", "resources/Steel.png");
     textureAssets.Load("FUSIONCORE", "resources/FusionCore.png");
-
+    textureAssets.Load("STEELBLOCK", "resources/SteelBlock.png");
+    textureAssets.Load("INFORMATIONBOX", "resources/InformationBox.png");
 }
 
 
@@ -74,8 +75,6 @@ int main(){
     TileDef fusionReactor = {"FUSIONREACTOR","FUSIONREACTOR", "FUSIONREACTOR", 1, true, TileShape::FULL_BLOCK};
     TileDef furnance = {"FURNACE","FURNACE", "FURNACE", 1, true, TileShape::FULL_BLOCK};
 
-    TileDef steel = {"STEEL","STEEL", "STEEL", 1, true, TileShape::FULL_BLOCK};
-
     TileDef core = {"FUSIONCORE","FUSIONCORE", "FUSIONCORE", 1, true, TileShape::FULL_BLOCK};
 
     player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 999));
@@ -83,6 +82,7 @@ int main(){
     player.getInventory().AddItem(new BlockItem("STONEWALL", stoneWallDef, 999));
     player.getInventory().AddItem(new Item("STEEL", "STEEL", 999, 999));
     player.getInventory().AddItem(new Item("FUSIONCORE", "FUSIONCORE", 999, 999));
+    player.getInventory().AddItem(new Item("INFORMATIONBOX", "INFORMATIONBOX", 999, 999));
     player.getInventory().AddItem(new BlockItem("FUSIONREACTOR", fusionReactor, 1));
     player.getInventory().AddItem(new ExplosiveBlock("TNT", explosiveDef, 999));
     
