@@ -2,7 +2,7 @@
 #include "TextureHandler.h"
 #include <cmath>
 
-Player::Player(int winW, int winH) 
+Player::Player(int winW, int winH)
     : Entity(100.0f, 100.0f, 75.0f, 175.0f, 8.0f), 
       inventory((winW - 540) / 2, winH - 85, 540, 75) 
 {
@@ -10,14 +10,18 @@ Player::Player(int winW, int winH)
     camera.offset = { winW / 2.0f, winH / 2.0f };
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
+    
+    
 }
 
-void Player::Update(World& world, int tileSize, float dt) {
+void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
     mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
     snappedX = (int)(std::floor(mouseWorldPos.x / tileSize)) * tileSize;
     snappedY = (int)(std::floor(mouseWorldPos.y / tileSize)) * tileSize;
 
-    if (IsKeyPressed(KEY_TAB)) inventory.ToggleInventory();
+    if(IsKeyPressed(KEY_F3)) debugMode = !debugMode;
+
+    if (IsKeyPressed(KEY_TAB) && !inventory.craftingMenu) inventory.ToggleInventory();
 
     if(inventory.isOpened){
         inventory.UpdateMouseLogic(&inventory);
@@ -55,7 +59,7 @@ void Player::Update(World& world, int tileSize, float dt) {
     if (!inventory.isOpened) {
         auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
 
-        if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+        if (IsMouseButtonDown(MOUSE_RIGHT_BUTTON)) {
     Item* current = inventory.getCurrentSelectedItem();
     if (current && current->count > 0) {
         BlockItem* bItem = dynamic_cast<BlockItem*>(current);
@@ -106,15 +110,19 @@ void Player::Update(World& world, int tileSize, float dt) {
                 }
             }
         }
+    }
 
-
-        if (IsKeyPressed(KEY_E)) {
-            if (world.chunks.count(mouseCoords)) {
-                for (auto& tile : world.chunks[mouseCoords].tiles) {
-                    if (CheckCollisionPointRec(mouseWorldPos, tile.getRec())) {
-                        tile.OnInteract(inventory, world, tileSize);
-                        break;
-                    }
+    auto mouseCoords = world.GetChunkCoords(snappedX, snappedY, tileSize);
+    if (IsKeyPressed(KEY_E)) {
+        if (inventory.craftingMenu) {
+            inventory.ClearCraftingGrid();
+            inventory.craftingMenu = false;
+            inventory.isOpened = false;
+        } else if (!inventory.isOpened && world.chunks.count(mouseCoords)) {
+            for (auto& tile : world.chunks[mouseCoords].tiles) {
+                if (CheckCollisionPointRec(mouseWorldPos, tile.getRec())) {
+                    tile.OnInteract(inventory, world, tileSize);
+                    break;
                 }
             }
         }
@@ -123,8 +131,12 @@ void Player::Update(World& world, int tileSize, float dt) {
 
 void Player::Draw() {
     Texture2D sprite = textureAssets.Get("PLAYER");
+
+    float flip = facingRight ? 1.0f : -1.0f;
+    Rectangle source = {0, 0, (float)sprite.width * flip, (float)sprite.height};
     Rectangle dest = { rect.x - 15, rect.y - 25, rect.width + 30, rect.height + 25 };
-    DrawTextureScaled(sprite, dest);
+    DrawTexturePro(sprite, source, dest, {0,0}, 0.0f, WHITE);
+    // DrawTextureScaled(sprite, dest);
 }
 
 void Player::DrawHighlights(int tileSize) {

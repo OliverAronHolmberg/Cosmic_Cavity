@@ -31,6 +31,7 @@ void LoadTextures(){
 
 int main(){
     
+    
     const int winW = 1080;
     const int winH = 720;
     bool debugMode = true;
@@ -54,6 +55,7 @@ int main(){
     int worldH = 500;
 
     World gameWorld;
+    RecipeManager recipeManager;
 
     gameWorld.Generate(tileSize, worldW, worldH);
 
@@ -70,15 +72,19 @@ int main(){
     player.getInventory().AddItem(new ExplosiveBlock("TNT", explosiveDef, 999));
 
 
+
+    Inventory* activeExternalInventory = nullptr;
+
+
     while(!WindowShouldClose()){
         float dt = GetFrameTime();
         
-        player.Update(gameWorld, tileSize, dt);
+        player.Update(gameWorld, tileSize, dt, debugMode);
 
         
 
         BeginDrawing();
-        if(player.GetRect().y < (40*tileSize)){
+        if(player.GetRect().y < (45*tileSize)){
             ClearBackground(SKYBLUE);
         }else{
             ClearBackground(DARKBROWN);
@@ -88,22 +94,28 @@ int main(){
         gameWorld.Draw(player.getCamera(), winW, winH, tileSize);
 
         player.DrawHighlights(tileSize);
+        player.SetFlying(debugMode);
         gameWorld.DrawItems();
         gameWorld.UpdateItems(player, dt, tileSize);
+        
         player.Draw();
+        if (debugMode){
+            DrawRectangleLinesEx(player.GetRect(), 2.0f, BLACK);
+        }
+        
         EndMode2D();
 
 
         
         
         player.getInventory().DrawInventory(winW, winH);
+        player.getInventory().DrawCraftingMenu(recipeManager, winW, winH);
         player.getInventory().DrawMouseItem();
         if(debugMode){
             DrawText(TextFormat("%s : %s",gameName.c_str(), gameVersion.c_str()), 10, 10, 20, WHITE);
             DrawText(TextFormat("FPS: %d", GetFPS()), 10, 50, 20, WHITE);
             DrawText(TextFormat("Delta Time: %.2f ms", GetFrameTime() * 1000), 10, 70, 20, WHITE);
-            DrawText(TextFormat("X, Y Pos: %.0f, %.0f", player.GetRect().x / tileSize, player.GetRect().y / tileSize), 10, 110, 20, WHITE);
-            
+            DrawText(TextFormat("Position (x, y): %.0f, %.0f", player.GetRect().x / tileSize, player.GetRect().y / tileSize), 10, 110, 20, WHITE);
         }
         
         EndDrawing();

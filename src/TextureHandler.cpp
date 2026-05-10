@@ -19,10 +19,15 @@ void TextureHandler::Load(std::string ID, std::string Path){
 }
 
 Texture2D TextureHandler::Get(std::string ID){
-    if (ID == "NONE") return { 0 };
+    if (ID == "NONE" || ID.empty()) return { 0 };
         auto it = textures.find(ID);
         if (it == textures.end()){
-            return textures.at("DEBUG");
+            auto debugIt = textures.find("DEBUG");
+            if (debugIt != textures.end()) {
+                return debugIt->second;
+            }
+            // Return a blank texture if nothing found
+            return { 0 };
         }
         return it->second;
 }

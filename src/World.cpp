@@ -68,6 +68,16 @@ void World::Generate(int tileSize, int worldW, int worldH) {
                     else tile = {"STONE", "STONE", "COBBLESTONE", 1, true, TileShape::FULL_BLOCK};
                 }
                 AddTile(tile, x * tileSize, y * tileSize, tileSize);
+            }else{
+                float wallNoise = Noise2D(x * 0.1f, y * 0.1f, seed + 1234);
+
+                float wallThreshold = 0.15f;
+
+                if (wallNoise > wallThreshold){
+                    TileDef stoneWallDef = {"STONEWALL","STONEWALL", "STONEWALL", 1, false, TileShape::FULL_BLOCK};
+                    AddTile(stoneWallDef, x * tileSize, y * tileSize, tileSize);
+                }
+                
             }
         }
     }
@@ -99,6 +109,9 @@ void World::Draw(Camera2D camera, int screenW, int screenH, int tileSize) {
 }
 
 Tile World::CreateTileFromBlueprint(TileDef def, int x, int y, int tileSize) {
+    if (def.name == "CRAFTER") {
+        return CrafterTile((float)x, (float)y, (float)tileSize, (float)tileSize, def);
+    }
     return Tile((float)x, (float)y, (float)tileSize, (float)tileSize, def);
 }
 

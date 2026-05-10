@@ -15,7 +15,7 @@ private:
 public:
     Player(int winW, int winH);
 
-    void Update(World& world, int tileSize, float dt);
+    void Update(World& world, int tileSize, float dt, bool& debugMode);
     void Draw();
     void DrawHighlights(int tileSize);
 
@@ -24,6 +24,9 @@ public:
     Vector2 GetMouseWorldPos() { return mouseWorldPos; }
     
     void SetFlying(bool state) { isFlying = state; }
+
+
+    bool facingRight = true;
 
     
 };

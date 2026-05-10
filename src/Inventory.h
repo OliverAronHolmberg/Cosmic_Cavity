@@ -3,10 +3,14 @@
 #include <string>
 #include <raylib.h>
 #include "Items.h"
+#include "Tiles.h"
 #include "TextureHandler.h"
 
-class InventorySlot;
 
+class Item;
+class InventorySlot;
+struct Recipe; 
+class RecipeManager;
 
 class Container {
 public:
@@ -63,11 +67,23 @@ private:
 
 public:
     bool isOpened = false;
+    bool craftingMenu = false;
 
     Inventory(int X, int Y, int W, int H);
     ~Inventory();
 
-    void ToggleInventory() { isOpened = !isOpened; }
+    void ToggleInventory() { 
+        isOpened = !isOpened; 
+        if (isOpened) craftingMenu = false;
+        if (!isOpened) {
+            for (auto& slot : craftingslots) {
+                if (slot.getOccupied()) {
+                    AddItem(slot.getHeldItem());
+                    slot.SetHeldItemRaw(nullptr);
+                }
+            }
+        }
+    }
     void setSelectedSlot(int slotNumber);
     
     Item* getCurrentSelectedItem();
@@ -82,6 +98,81 @@ public:
     bool AddItem(Item* newItem);
     void DrawInventory(int screenW, int screenH);
 
+    bool HasAmount(std::string itemName, int amount);
+    void RemoveItems(std::string itemName, int amount);
+    void DrawCraftingMenu(RecipeManager& rm, int screenW, int screenH);
+    void ClearCraftingGrid() {
+        for (auto& slot : craftingslots) {
+            if (slot.getOccupied()) {
+                AddItem(slot.getHeldItem());
+                slot.SetHeldItemRaw(nullptr);
+            }
+        }
+    }
+
 private:
     void highlightSelectedSlot();
+};
+
+
+class RecipeManager {
+public:
+    std::vector<Recipe> recipes;
+
+    RecipeManager() {
+
+        Recipe stoneWallRecipe = {"STONEWALL", "STONEWALL", 1, {}, true};
+        stoneWallRecipe.grid[0] = "TNT"; stoneWallRecipe.grid[1] = "TNT"; stoneWallRecipe.grid[2] = "";
+        stoneWallRecipe.grid[3] = ""; stoneWallRecipe.grid[4] = ""; stoneWallRecipe.grid[5] = "";
+        stoneWallRecipe.grid[6] = ""; stoneWallRecipe.grid[7] = ""; stoneWallRecipe.grid[8] = "";
+        recipes.push_back(stoneWallRecipe);
+
+        Recipe workbenchRecipe = {"CRAFTER", "CRAFTER", 1, {}, true};
+        workbenchRecipe.grid[0] = "LOG"; workbenchRecipe.grid[1] = "LOG"; workbenchRecipe.grid[2] = "LOG";
+        workbenchRecipe.grid[3] = "LOG"; workbenchRecipe.grid[4] = "LOG"; workbenchRecipe.grid[5] = "LOG";
+        workbenchRecipe.grid[6] = ""; workbenchRecipe.grid[7] = ""; workbenchRecipe.grid[8] = "";
+        recipes.push_back(workbenchRecipe);
+    }
+
+   
+    bool CanCraft(const Recipe& recipe, Inventory& inv) {
+        for (const auto& ing : recipe.ingredients) {
+            if (!inv.HasAmount(ing.id, ing.amount)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    
+
+    Item* CheckGridRecipe(std::vector<InventorySlot>& allSlots) {
+        for (auto& recipe : recipes) {
+            bool match = true;
+            for (int i = 0; i < 9; i++) {
+                std::string slotItemName = "";
+                if (allSlots[i].getOccupied() && allSlots[i].getHeldItem()) {
+                    slotItemName = allSlots[i].getHeldItem()->name;
+                }
+                
+                if (recipe.grid[i].empty()) {
+                    if (!slotItemName.empty()) { match = false; break; }
+                } else {
+                    if (slotItemName != recipe.grid[i]) { match = false; break; }
+                }
+            }
+            
+            if (match) {
+                TileDef def;
+                def.name = recipe.resultID;
+                def.textureID = recipe.resultTexture;
+                def.dropID = recipe.resultID;
+                def.dropAmount = recipe.resultAmount;
+                def.hasCollision = true;
+                def.shape = TileShape::FULL_BLOCK;
+                return new BlockItem(recipe.resultID, def, recipe.resultAmount);
+            }
+        }
+        return nullptr;
+    }
 };

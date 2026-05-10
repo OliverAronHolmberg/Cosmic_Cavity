@@ -40,6 +40,9 @@ public:
         : pos({x, y}), width(w), height(h), type(definition) {}
 
 
+    virtual ~Tile() = default; 
+    virtual void OnInteract(Inventory& playerInv, World& world, int tileSize);
+
     Rectangle getRec() const {
         Rectangle r = { pos.x, pos.y, width, height };
         if (type.shape == TileShape::SLAB_BOTTOM) {
@@ -71,5 +74,13 @@ public:
     std::string GetName() const { return type.name; }
 
     Item* CreateDrop();
-    void OnInteract(Inventory& playerInv, World& world, int tileSize);
+};
+
+
+class CrafterTile : public Tile {
+public:
+    CrafterTile(float x, float y, float w, float h, TileDef def) 
+        : Tile(x, y, w, h, def) {}
+
+    void OnInteract(Inventory& playerInv, World& world, int tileSize) override;
 };
