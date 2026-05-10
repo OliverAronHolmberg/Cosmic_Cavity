@@ -18,7 +18,7 @@ public:
 
     virtual ~Item() = default;
 
-    virtual Item* Clone() const = 0;
+    virtual Item* Clone() const { return new Item(name, textureID, count, max, isPlaceable); }
 
     virtual void OnUse(World& world, int x, int y) {}
 };

@@ -132,6 +132,13 @@ public:
         workbenchRecipe.grid[3] = "LOG"; workbenchRecipe.grid[4] = "LOG"; workbenchRecipe.grid[5] = "LOG";
         workbenchRecipe.grid[6] = ""; workbenchRecipe.grid[7] = ""; workbenchRecipe.grid[8] = "";
         recipes.push_back(workbenchRecipe);
+
+
+        Recipe fusionReactor = {"FUSIONREACTOR", "FUSIONREACTOR", 1, {}, true};
+        fusionReactor.grid[0] = "STEEL"; fusionReactor.grid[1] = "STEEL"; fusionReactor.grid[2] = "STEEL";
+        fusionReactor.grid[3] = "STEEL"; fusionReactor.grid[4] = "FUSIONCORE"; fusionReactor.grid[5] = "STEEL";
+        fusionReactor.grid[6] = "STEEL"; fusionReactor.grid[7] = "STEEL"; fusionReactor.grid[8] = "STEEL";
+        recipes.push_back(fusionReactor);
     }
 
    

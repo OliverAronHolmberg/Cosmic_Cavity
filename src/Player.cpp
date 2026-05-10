@@ -59,7 +59,7 @@ void Player::Update(World& world, int tileSize, float dt, bool& debugMode) {
         if (currentItem && currentItem->count > 0) {
             int throwVelX = 0;
             if (mouseWorldPos.x > rect.x) throwVelX = 20;
-            else if (mouseWorldPos.x < rect.x) throwVelX = -0;
+            else if (mouseWorldPos.x < rect.x) throwVelX = -20;
             
             int throwVelY = 0;
             if (mouseWorldPos.y < rect.y) throwVelY = -10;

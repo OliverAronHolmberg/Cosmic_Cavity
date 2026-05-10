@@ -25,6 +25,10 @@ void LoadTextures(){
     textureAssets.Load("COPPARORE", "resources/CopparOre.png");
     textureAssets.Load("IRONORE", "resources/IronOre.png");
     textureAssets.Load("TNT", "resources/TNT.png");
+    textureAssets.Load("FUSIONREACTOR", "resources/FusionReactor.png");
+    textureAssets.Load("FURNACE", "resources/Furnace.png");
+    textureAssets.Load("STEEL", "resources/Steel.png");
+    textureAssets.Load("FUSIONCORE", "resources/FusionCore.png");
 
 }
 
@@ -66,10 +70,22 @@ int main(){
     TileDef stoneWallDef = {"STONEWALL","STONEWALL", "STONEWALL", 1, false, TileShape::FULL_BLOCK};
 
     TileDef explosiveDef = {"TNT","TNT", "TNT", 1, true, TileShape::FULL_BLOCK, true, 800.0f};
+    
+    TileDef fusionReactor = {"FUSIONREACTOR","FUSIONREACTOR", "FUSIONREACTOR", 1, true, TileShape::FULL_BLOCK};
+    TileDef furnance = {"FURNACE","FURNACE", "FURNACE", 1, true, TileShape::FULL_BLOCK};
+
+    TileDef steel = {"STEEL","STEEL", "STEEL", 1, true, TileShape::FULL_BLOCK};
+
+    TileDef core = {"FUSIONCORE","FUSIONCORE", "FUSIONCORE", 1, true, TileShape::FULL_BLOCK};
 
     player.getInventory().AddItem(new BlockItem("CRAFTER", crafterDef, 999));
+    player.getInventory().AddItem(new BlockItem("FURNACE", furnance, 999));
     player.getInventory().AddItem(new BlockItem("STONEWALL", stoneWallDef, 999));
+    player.getInventory().AddItem(new Item("STEEL", "STEEL", 999, 999));
+    player.getInventory().AddItem(new Item("FUSIONCORE", "FUSIONCORE", 999, 999));
+    player.getInventory().AddItem(new BlockItem("FUSIONREACTOR", fusionReactor, 1));
     player.getInventory().AddItem(new ExplosiveBlock("TNT", explosiveDef, 999));
+    
 
 
 
@@ -111,7 +127,7 @@ int main(){
         player.getInventory().DrawCraftingMenu(recipeManager, winW, winH);
         player.getInventory().DrawMouseItem();
 
-        
+
         if(debugMode){
             DrawText(TextFormat("%s : %s",gameName.c_str(), gameVersion.c_str()), 10, 10, 20, WHITE);
             DrawText(TextFormat("FPS: %d", GetFPS()), 10, 50, 20, WHITE);
