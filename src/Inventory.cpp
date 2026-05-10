@@ -88,10 +88,11 @@ void Inventory::UpdateMouseLogic(Container* activeContainer) {
 
                 if (mouseItem && slotItem && mouseItem->name == slotItem->name) {
                     int spaceLeft = slotItem->max - slotItem->count;
-                    int transfer = (mouseItem->count < spaceLeft) ? mouseItem->count : spaceLeft;
-                    
-                    slotItem->count += transfer;
-                    mouseItem->count -= transfer;
+                    if (spaceLeft > 0) {
+                        int transfer = (mouseItem->count < spaceLeft) ? mouseItem->count : spaceLeft;
+                        slotItem->count += transfer;
+                        mouseItem->count -= transfer;
+                    }
                 } else {
                     slot.SwapItem(mouseItem);
                 }
@@ -111,13 +112,16 @@ void Inventory::UpdateMouseLogic(Container* activeContainer) {
                 } 
                 else if (mouseItem) { 
                     if (!slotItem) { 
-                        slot.SetItem(mouseItem->Clone());
-                        slot.getHeldItem()->count = 1;
-                        mouseItem->count--;
+                        slot.SetItem(mouseItem);
+                        mouseItem = nullptr;
                     } 
-                    else if (slotItem->name == mouseItem->name && slotItem->count < slotItem->max) { 
-                        slotItem->count++;
-                        mouseItem->count--;
+                    else if (slotItem->name == mouseItem->name) { 
+                        int space = slotItem->max - slotItem->count;
+                        if (space > 0) {
+                            int toAdd = (mouseItem->count < space) ? mouseItem->count : space;
+                            slotItem->count += toAdd;
+                            mouseItem->count -= toAdd;
+                        }
                     }
                 }
             }
@@ -409,7 +413,7 @@ void Inventory::DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH) {
         smeltRecipe = rm.FindFurnaceRecipe(inputItem->name);
     }
 
-    if (smeltRecipe && hasFuel && !outputItem) {
+    if (smeltRecipe && hasFuel && !outputItem && !mouseItem) {
         Rectangle smeltBtn = { menuX + 140, menuY + 80, 80, 30 };
         DrawRectangleRec(smeltBtn, ColorAlpha(ORANGE, 0.8f));
         DrawText("Smelt", smeltBtn.x + 20, smeltBtn.y + 8, 16, WHITE);
@@ -428,25 +432,8 @@ void Inventory::DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH) {
                     furnaceslots[0].SetHeldItemRaw(nullptr);
                 }
                 
-                Item* result = new Item(smeltRecipe->resultID, smeltRecipe->resultTexture, smeltRecipe->resultAmount, 1);
+                Item* result = new Item(smeltRecipe->resultID, smeltRecipe->resultTexture, smeltRecipe->resultAmount, 999);
                 furnaceslots[2].SetItem(result);
-            }
-        }
-    }
-
-    if (outputItem) {
-        Rectangle takeBtn = { menuX + 140, menuY + 80, 80, 30 };
-        DrawRectangleRec(takeBtn, ColorAlpha(GREEN, 0.8f));
-        DrawText("Take", takeBtn.x + 25, takeBtn.y + 8, 16, WHITE);
-        
-        if (CheckCollisionPointRec(GetMousePosition(), takeBtn) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            if (!mouseItem) {
-                mouseItem = outputItem->Clone();
-                outputItem->count--;
-                if (outputItem->count <= 0) {
-                    delete outputItem;
-                    furnaceslots[2].SetHeldItemRaw(nullptr);
-                }
             }
         }
     }
@@ -470,38 +457,45 @@ void Inventory::DrawFurnaceMenu(RecipeManager& rm, int screenW, int screenH) {
             }
         }
         
-        if (CheckCollisionPointRec(GetMousePosition(), slotRec)) {
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                Item* slotItem = slot.getHeldItem();
-                if (mouseItem && slotItem && mouseItem->name == slotItem->name) {
-                    int spaceLeft = slotItem->max - slotItem->count;
-                    int transfer = (mouseItem->count < spaceLeft) ? mouseItem->count : spaceLeft;
-                    slotItem->count += transfer;
-                    mouseItem->count -= transfer;
-                } else {
-                    slot.SwapItem(mouseItem);
-                }
+        if (!CheckCollisionPointRec(GetMousePosition(), slotRec)) continue;
+        
+        bool isOutputSlot = (i == 2);
+        
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            Item* slotItem = slot.getHeldItem();
+            if (mouseItem && slotItem && mouseItem->name == slotItem->name && !isOutputSlot) {
+                int spaceLeft = slotItem->max - slotItem->count;
+                int transfer = (mouseItem->count < spaceLeft) ? mouseItem->count : spaceLeft;
+                slotItem->count += transfer;
+                mouseItem->count -= transfer;
+            } else if (!mouseItem && slotItem) {
+                mouseItem = slotItem;
+                slot.SetHeldItemRaw(nullptr);
+            } else if (!slotItem && !isOutputSlot) {
+                slot.SetItem(mouseItem);
+                mouseItem = nullptr;
             }
-            
-            if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-                Item* slotItem = slot.getHeldItem();
-                if (!mouseItem && slotItem) {
-                    int half = slotItem->count / 2;
-                    if (half == 0) half = 1;
-                    mouseItem = slotItem->Clone();
-                    mouseItem->count = half;
-                    slotItem->count -= half;
-                }
-                else if (mouseItem) {
-                    if (!slotItem) {
-                        slot.SetItem(mouseItem->Clone());
-                        slot.getHeldItem()->count = 1;
-                        mouseItem->count--;
-                    }
-                    else if (slotItem->name == mouseItem->name && slotItem->count < slotItem->max) {
-                        slotItem->count++;
-                        mouseItem->count--;
-                    }
+        }
+        
+        if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+            Item* slotItem = slot.getHeldItem();
+            if (!mouseItem && slotItem) {
+                int half = slotItem->count / 2;
+                if (half == 0) half = 1;
+                mouseItem = slotItem->Clone();
+                mouseItem->count = half;
+                slotItem->count -= half;
+            }
+            else if (mouseItem && !slotItem && !isOutputSlot) {
+                slot.SetItem(mouseItem);
+                mouseItem = nullptr;
+            }
+            else if (mouseItem && slotItem && slotItem->name == mouseItem->name && !isOutputSlot) {
+                int space = slotItem->max - slotItem->count;
+                if (space > 0) {
+                    int toAdd = (mouseItem->count < space) ? mouseItem->count : space;
+                    slotItem->count += toAdd;
+                    mouseItem->count -= toAdd;
                 }
             }
         }
